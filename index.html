@@ -192,7 +192,7 @@
     }
 
     // --- FUNCIÓN DE INICIALIZACIÓN PRINCIPAL ---
-    document.addEventListener('DOMContentLoaded', () => {
+    function initializeAppLogic() {
         const authContainer = document.getElementById('auth-container');
         const familyContainer = document.getElementById('family-container');
         const appContainer = document.getElementById('app-container');
@@ -286,7 +286,14 @@
                 showRegisterLink.textContent = '¿No tienes cuenta? Regístrate';
             }
         });
-    });
+    }
+
+    // Esperar a que el DOM esté completamente cargado para evitar errores de referencia.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeAppLogic);
+    } else {
+        initializeAppLogic();
+    }
     
 </script>
 

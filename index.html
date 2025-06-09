@@ -96,7 +96,26 @@
     import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- CONFIGURACIÓN ---
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    
+    // ** IMPORTANTE **
+    // PASO 1: Pega aquí la configuración de tu propio proyecto de Firebase que copiaste en el paso 2 de las instrucciones.
+    
+      const firebaseConfig = {
+  apiKey: "AIzaSyAfkGOJzbGbolR0XhwcAvV_gWWTCrXgAlo",
+  authDomain: "finanzas-familiares-53a54.firebaseapp.com",
+  projectId: "finanzas-familiares-53a54",
+  storageBucket: "finanzas-familiares-53a54.firebasestorage.app",
+  messagingSenderId: "387500536045",
+  appId: "1:387500536045:web:f2cde368ab7cc046ef5ce4",
+  measurementId: "G-6DCWH1ZWBV"
+
+    };
+
+    // Este código usa tu configuración si la pegaste, o la del entorno de Canvas si no.
+    if (!firebaseConfig.apiKey) {
+        firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    }
+    
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'Family-Calila';
     const BUDGET_PASSWORD_B64 = 'Y2FsaWxh'; // "calila" en Base64
     const app = initializeApp(firebaseConfig);
@@ -260,6 +279,11 @@
     // --- INICIALIZACIÓN Y EVENTOS ---
     
     async function main() {
+        if (!firebaseConfig.apiKey) {
+            document.body.innerHTML = '<div class="text-center p-8"><h1 class="text-2xl text-red-400">Error de Configuración</h1><p class="text-slate-300 mt-2">La configuración de Firebase no se ha encontrado. Si estás desplegando esta app, asegúrate de pegar tu objeto `firebaseConfig` en el archivo `index.html`.</p></div>';
+            return;
+        }
+
         try {
             await enableIndexedDbPersistence(db);
         } catch (err) {
@@ -274,7 +298,7 @@
             }
         } catch (error) {
             console.error("Error de autenticación anónima:", error);
-            document.body.innerHTML = '<p class="text-center text-red-400">No se pudo conectar con la base de datos.</p>';
+            document.body.innerHTML = '<p class="text-center text-red-400">No se pudo conectar con la base de datos. Revisa que el método de inicio de sesión "Anónimo" esté habilitado en tu proyecto de Firebase.</p>';
             return;
         }
 
@@ -290,13 +314,13 @@
         });
 
         confirmPasswordBtn.addEventListener('click', () => {
-            // Decodificar la clave guardada y comparar
             if (passwordInput.value === atob(BUDGET_PASSWORD_B64)) {
                 budgetInput.disabled = false;
                 budgetInput.focus();
                 passwordFeedback.textContent = "";
             } else {
                 passwordFeedback.textContent = "Contraseña incorrecta.";
+                setTimeout(() => passwordFeedback.textContent = "", 2000);
             }
             passwordInput.value = "";
             passwordContainer.classList.add('hidden');

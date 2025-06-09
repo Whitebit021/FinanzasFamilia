@@ -194,90 +194,95 @@
     }
 
     // --- MANEJO DE AUTH ---
-    onAuthStateChanged(auth, async (user) => {
-        unsubscribeBudget();
-        unsubscribeExpenses();
-        if (user) {
-            familyUserEmail.textContent = user.email;
-            if (familyId) {
-                setupApp(familyId);
+    function main() {
+        onAuthStateChanged(auth, async (user) => {
+            unsubscribeBudget();
+            unsubscribeExpenses();
+            if (user) {
+                familyUserEmail.textContent = user.email;
+                familyId = localStorage.getItem('familyId'); // Recargar familyId por si acaso
+                if (familyId) {
+                    setupApp(familyId);
+                } else {
+                    authContainer.classList.add('hidden');
+                    familyContainer.classList.remove('hidden');
+                    appContainer.classList.add('hidden');
+                }
             } else {
-                authContainer.classList.add('hidden');
-                familyContainer.classList.remove('hidden');
+                authContainer.classList.remove('hidden');
+                familyContainer.classList.add('hidden');
                 appContainer.classList.add('hidden');
+                localStorage.removeItem('familyId');
             }
-        } else {
-            authContainer.classList.remove('hidden');
-            familyContainer.classList.add('hidden');
-            appContainer.classList.add('hidden');
-            localStorage.removeItem('familyId');
-        }
-    });
+        });
 
-    createFamilyBtn.onclick = async () => {
-        const newFamilyId = (await stringToSHA256(auth.currentUser.uid + Date.now())).substring(0, 8);
-        setupApp(newFamilyId);
-    };
+        createFamilyBtn.addEventListener('click', async () => {
+            const newFamilyId = (await stringToSHA256(auth.currentUser.uid + Date.now())).substring(0, 8);
+            setupApp(newFamilyId);
+        });
 
-    joinFamilyForm.onsubmit = (e) => {
-        e.preventDefault();
-        const enteredId = joinFamilyIdInput.value.trim();
-        if (enteredId) setupApp(enteredId);
-    };
-    
-    logoutBtn.onclick = () => signOut(auth);
-
-    loginForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const email = loginEmailInput.value;
-        const password = loginPasswordInput.value;
-        const isRegistering = loginForm.dataset.mode === 'register';
-        authErrorEl.textContent = '';
+        joinFamilyForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const enteredId = joinFamilyIdInput.value.trim();
+            if (enteredId) setupApp(enteredId);
+        });
         
-        if (isRegistering) {
-            try {
-                const configRef = doc(db, "app_config", "user_management");
-                await runTransaction(db, async (transaction) => {
-                    const configDoc = await transaction.get(configRef);
-                    const userCount = configDoc.exists() ? configDoc.data().user_count : 0;
-                    if (userCount >= 2) {
-                        throw new Error("Límite de 2 usuarios alcanzado para esta aplicación.");
-                    }
-                    transaction.set(configRef, { user_count: userCount + 1 }, { merge: true });
-                });
+        logoutBtn.addEventListener('click', () => signOut(auth));
 
-                await createUserWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                authErrorEl.textContent = error.message.includes('Límite') ? error.message : 'Error al registrar: ' + error.code;
-                console.error("Error de registro:", error);
-            }
-        } else {
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                authErrorEl.textContent = 'Error: ' + error.code.split('/')[1];
-            }
-        }
-    };
-    
-    showRegisterLink.onclick = (e) => {
-        e.preventDefault();
-        const isLoginMode = loginForm.dataset.mode === 'login';
-        const h3 = loginForm.querySelector('h3');
-        const button = loginForm.querySelector('button');
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = loginEmailInput.value;
+            const password = loginPasswordInput.value;
+            const isRegistering = loginForm.dataset.mode === 'register';
+            authErrorEl.textContent = '';
+            
+            if (isRegistering) {
+                try {
+                    const configRef = doc(db, "app_config", "user_management");
+                    await runTransaction(db, async (transaction) => {
+                        const configDoc = await transaction.get(configRef);
+                        const userCount = configDoc.exists() ? configDoc.data().user_count : 0;
+                        if (userCount >= 2) {
+                            throw new Error("Límite de 2 usuarios alcanzado para esta aplicación.");
+                        }
+                        transaction.set(configRef, { user_count: userCount + 1 }, { merge: true });
+                    });
 
-        if(isLoginMode) {
-            loginForm.dataset.mode = 'register';
-            h3.textContent = 'Registrar Nueva Cuenta';
-            button.textContent = 'Registrar';
-            showRegisterLink.textContent = '¿Ya tienes cuenta? Inicia sesión';
-        } else {
-            loginForm.dataset.mode = 'login';
-            h3.textContent = 'Iniciar Sesión';
-            button.textContent = 'Entrar';
-            showRegisterLink.textContent = '¿No tienes cuenta? Regístrate';
-        }
-    };
+                    await createUserWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    authErrorEl.textContent = error.message.includes('Límite') ? error.message : 'Error al registrar: ' + error.code;
+                    console.error("Error de registro:", error);
+                }
+            } else {
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } catch (error) {
+                    authErrorEl.textContent = 'Error: ' + error.code.split('/')[1];
+                }
+            }
+        });
+        
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isLoginMode = loginForm.dataset.mode === 'login';
+            const h3 = loginForm.querySelector('h3');
+            const button = loginForm.querySelector('button');
+
+            if(isLoginMode) {
+                loginForm.dataset.mode = 'register';
+                h3.textContent = 'Registrar Nueva Cuenta';
+                button.textContent = 'Registrar';
+                showRegisterLink.textContent = '¿Ya tienes cuenta? Inicia sesión';
+            } else {
+                loginForm.dataset.mode = 'login';
+                h3.textContent = 'Iniciar Sesión';
+                button.textContent = 'Entrar';
+                showRegisterLink.textContent = '¿No tienes cuenta? Regístrate';
+            }
+        });
+    }
+
+    main(); // Ejecutar la función principal para que se asignen los listeners
     
 </script>
 

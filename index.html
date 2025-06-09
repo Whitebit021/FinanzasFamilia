@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Presupuesto Colaborativo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
+        input:disabled { background-color: #334155 !important; cursor: not-allowed; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4 sm:p-6">
+
+    <!-- Contenedor Principal -->
+    <div class="w-full max-w-2xl mx-auto">
+
+        <!-- Pantalla de Selección de Usuario (Overlay) -->
+        <div id="user-selection-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-slate-800 p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
+                <h2 class="text-2xl font-bold text-cyan-400 mb-4">¿Quién está usando la app?</h2>
+                <p class="text-slate-400 mb-6">Tu selección se recordará en este dispositivo.</p>
+                <div class="space-y-4">
+                    <button data-user="El Putas" class="user-select-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">El Putas</button>
+                    <button data-user="Mi esposita" class="user-select-btn w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Mi esposita</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenedor de la Aplicación -->
+        <div id="app-container" class="hidden space-y-6">
+            <header class="flex justify-between items-center">
+                <div class="text-left">
+                     <p class="text-sm text-slate-400">Sesión de:</p>
+                     <p id="session-user-display" class="font-semibold text-cyan-300 text-lg"></p>
+                </div>
+                <button id="change-user-btn" class="text-sm bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cambiar Usuario</button>
+            </header>
+            
+            <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
+                <h2 class="text-lg font-semibold mb-4 text-slate-300">Resumen del Mes</h2>
+                <div class="mb-4">
+                    <label for="monthly-budget" class="block text-sm font-medium text-cyan-300">Presupuesto Mensual (COP)</label>
+                    <div class="flex items-center space-x-2 mt-1">
+                        <input type="number" id="monthly-budget" placeholder="Define un presupuesto..." class="w-full bg-slate-900 border-2 border-slate-700 rounded-lg p-2 text-white text-xl focus:outline-none focus:ring-2 focus:ring-cyan-500" disabled>
+                        <div id="unlock-container">
+                             <button id="unlock-budget-btn" class="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg" title="Desbloquear para editar">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </button>
+                        </div>
+                         <div id="password-container" class="hidden flex items-center space-x-2">
+                            <input type="password" id="password-input" placeholder="Clave" class="w-28 bg-slate-900 border-2 border-slate-700 rounded-lg p-2 text-white text-sm">
+                            <button id="confirm-password-btn" class="px-3 py-2 text-sm bg-cyan-600 hover:bg-cyan-700 rounded-lg">OK</button>
+                        </div>
+                    </div>
+                    <p id="password-feedback" class="text-xs text-red-400 h-4 mt-1"></p>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-end"><span class="text-slate-400">Gastado:</span><span id="total-spent" class="font-bold text-lg text-amber-400">$0</span></div>
+                    <div class="flex justify-between items-end"><span class="text-slate-400">Restante:</span><span id="remaining-budget" class="font-bold text-2xl text-green-400">$0</span></div>
+                </div>
+                <div class="w-full bg-slate-700 rounded-full h-4 mt-4 overflow-hidden"><div id="progress-bar" class="progress-bar h-4 rounded-full" style="width: 0%;"></div></div>
+            </section>
+
+            <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
+                <h2 class="text-lg font-semibold mb-4 text-slate-300">Añadir Nuevo Gasto</h2>
+                <form id="add-expense-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2"><label for="expense-amount" class="block text-sm font-medium text-slate-400">Monto (COP)</label><input type="number" id="expense-amount" placeholder="Ej: 50000" required class="w-full mt-1 bg-slate-900 border-2 border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"></div>
+                    <div><label for="expense-store" class="block text-sm font-medium text-slate-400">Tienda / Descripción</label><input type="text" id="expense-store" placeholder="Ej: Almuerzo" required class="w-full mt-1 bg-slate-900 border-2 border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"></div>
+                    <div><label for="payment-method" class="block text-sm font-medium text-slate-400">Medio de Pago</label><select id="payment-method" class="w-full mt-1 bg-slate-900 border-2 border-slate-700 rounded-lg p-2 text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"><option>Tarjeta de Crédito</option><option>Tarjeta de Débito</option><option>Efectivo</option><option>Transfiya</option><option>Nequi/Daviplata</option><option>Otro</option></select></div>
+                    <button type="submit" class="sm:col-span-2 w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">Añadir Gasto</button>
+                </form>
+            </section>
+            
+            <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
+                <h2 class="text-lg font-semibold mb-4 text-slate-300">Historial de Gastos</h2>
+                <div id="expense-list" class="space-y-3 max-h-96 overflow-y-auto pr-2"><p id="no-expenses-message" class="text-slate-500 text-center">Aún no hay gastos registrados.</p></div>
+            </section>
+
+            <section class="text-center pt-4">
+                 <button id="export-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">Exportar Mes a Excel</button>
+            </section>
+        </div>
+    </div>
+
+<script type="module">
+    // --- IMPORTACIONES DE FIREBASE ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- CONFIGURACIÓN ---
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'Family-Calila';
+    const BUDGET_PASSWORD_B64 = 'Y2FsaWxh'; // "calila" en Base64
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    
+    // --- DOM ELEMENTS ---
+    const userSelectionOverlay = document.getElementById('user-selection-overlay');
+    const appContainer = document.getElementById('app-container');
+    const sessionUserDisplay = document.getElementById('session-user-display');
+    const changeUserBtn = document.getElementById('change-user-btn');
+    const budgetInput = document.getElementById('monthly-budget');
+    const unlockContainer = document.getElementById('unlock-container');
+    const unlockBudgetBtn = document.getElementById('unlock-budget-btn');
+    const passwordContainer = document.getElementById('password-container');
+    const passwordInput = document.getElementById('password-input');
+    const confirmPasswordBtn = document.getElementById('confirm-password-btn');
+    const passwordFeedback = document.getElementById('password-feedback');
+    const totalSpentEl = document.getElementById('total-spent');
+    const remainingBudgetEl = document.getElementById('remaining-budget');
+    const progressBar = document.getElementById('progress-bar');
+    const expenseForm = document.getElementById('add-expense-form');
+    const amountInput = document.getElementById('expense-amount');
+    const storeInput = document.getElementById('expense-store');
+    const paymentMethodSelect = document.getElementById('payment-method');
+    const expenseListEl = document.getElementById('expense-list');
+    const noExpensesMessage = document.getElementById('no-expenses-message');
+    const exportBtn = document.getElementById('export-btn');
+    
+    // --- ESTADO Y REFERENCIAS ---
+    let budget = 0;
+    let expenses = [];
+    let currentUser = localStorage.getItem('budgetAppUser');
+    const budgetRef = doc(db, `artifacts/${appId}/public/data/budget/doc`);
+    const expensesRef = collection(db, `artifacts/${appId}/public/data/expenses`);
+    const copFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
+    // --- LÓGICA DE LA UI ---
+    
+    function updateSummary() {
+        const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+        const remaining = budget - totalExpenses;
+        totalSpentEl.textContent = copFormatter.format(totalExpenses);
+        remainingBudgetEl.textContent = copFormatter.format(remaining);
+        
+        const progressPercentage = budget > 0 ? (totalExpenses / budget) * 100 : 0;
+        progressBar.style.width = `${Math.min(progressPercentage, 100)}%`;
+        progressBar.className = `progress-bar h-4 rounded-full ${progressPercentage < 50 ? 'bg-green-500' : progressPercentage < 85 ? 'bg-yellow-500' : 'bg-red-600'}`;
+    }
+
+    function renderExpenses() {
+        expenseListEl.innerHTML = '';
+        noExpensesMessage.style.display = 'none';
+        if (expenses.length === 0) {
+            expenseListEl.appendChild(noExpensesMessage);
+            noExpensesMessage.style.display = 'block';
+            return;
+        }
+        
+        expenses.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+        expenses.forEach(expense => {
+            const expenseEl = document.createElement('div');
+            expenseEl.className = 'bg-slate-900/50 p-3 rounded-lg flex justify-between items-center';
+            const date = expense.createdAt ? expense.createdAt.toDate() : new Date();
+            const formattedDate = date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' });
+            const formattedTime = date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            const personBadgeColor = expense.person === 'Mi esposita' ? 'bg-pink-500/20 text-pink-300' : 'bg-blue-500/20 text-blue-300';
+            expenseEl.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="text-center w-12 flex-shrink-0"><p class="font-bold text-slate-300">${formattedDate}</p><p class="text-xs text-slate-500">${formattedTime}</p></div>
+                    <div><p class="font-semibold text-white">${expense.store}</p><p class="text-xs text-slate-400">${expense.paymentMethod} - <span class="px-2 py-0.5 rounded-full text-xs font-medium ${personBadgeColor}">${expense.person}</span></p></div>
+                </div>
+                <div class="text-right"><p class="font-bold text-amber-400">${copFormatter.format(expense.amount)}</p><button data-id="${expense.id}" class="delete-btn text-xs text-red-500 hover:text-red-400">Eliminar</button></div>`;
+            expenseListEl.appendChild(expenseEl);
+        });
+    }
+
+    function showApp() {
+        sessionUserDisplay.textContent = currentUser;
+        userSelectionOverlay.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+    }
+
+    function showUserSelection() {
+        userSelectionOverlay.classList.remove('hidden');
+        appContainer.classList.add('hidden');
+    }
+
+    // --- MANEJO DE DATOS ---
+
+    async function handleBudgetChange() {
+        const newBudgetValue = parseFloat(budgetInput.value) || 0;
+        await setDoc(budgetRef, { value: newBudgetValue });
+        budgetInput.disabled = true;
+    }
+
+    async function handleAddExpense(e) {
+        e.preventDefault();
+        const amount = parseFloat(amountInput.value);
+        const store = storeInput.value.trim();
+        if (!amount || amount <= 0 || !store) return;
+        
+        await addDoc(expensesRef, {
+            amount, store,
+            paymentMethod: paymentMethodSelect.value,
+            person: currentUser,
+            createdAt: serverTimestamp()
+        });
+        expenseForm.reset();
+    }
+
+    async function handleDeleteExpense(e) {
+        if (e.target.classList.contains('delete-btn')) {
+            const id = e.target.dataset.id;
+            await deleteDoc(doc(expensesRef, id));
+        }
+    }
+    
+    function exportToCSV() {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const monthExpenses = expenses.filter(expense => {
+            const expenseDate = expense.createdAt.toDate();
+            return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+        });
+
+        if (monthExpenses.length === 0) {
+            passwordFeedback.textContent = "No hay gastos este mes para exportar.";
+            setTimeout(() => passwordFeedback.textContent = "", 3000);
+            return;
+        }
+
+        let csvContent = "Fecha,Hora,Descripcion,Monto,Medio de Pago,Persona\n";
+        monthExpenses.forEach(exp => {
+            const date = exp.createdAt.toDate();
+            const row = [
+                date.toLocaleDateString('es-CO'),
+                date.toLocaleTimeString('es-CO'),
+                `"${exp.store.replace(/"/g, '""')}"`,
+                exp.amount,
+                exp.paymentMethod,
+                exp.person
+            ].join(",");
+            csvContent += row + "\n";
+        });
+
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        const monthName = now.toLocaleString('es-CO', { month: 'long' });
+        link.setAttribute("download", `gastos_${monthName}_${currentYear}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // --- INICIALIZACIÓN Y EVENTOS ---
+    
+    async function main() {
+        try {
+            await enableIndexedDbPersistence(db);
+        } catch (err) {
+            console.warn("Error de persistencia:", err.message);
+        }
+        
+        try {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        } catch (error) {
+            console.error("Error de autenticación anónima:", error);
+            document.body.innerHTML = '<p class="text-center text-red-400">No se pudo conectar con la base de datos.</p>';
+            return;
+        }
+
+        budgetInput.addEventListener('change', handleBudgetChange);
+        expenseForm.addEventListener('submit', handleAddExpense);
+        expenseListEl.addEventListener('click', handleDeleteExpense);
+        exportBtn.addEventListener('click', exportToCSV);
+        
+        unlockBudgetBtn.addEventListener('click', () => {
+            unlockContainer.classList.add('hidden');
+            passwordContainer.classList.remove('hidden');
+            passwordInput.focus();
+        });
+
+        confirmPasswordBtn.addEventListener('click', () => {
+            // Decodificar la clave guardada y comparar
+            if (passwordInput.value === atob(BUDGET_PASSWORD_B64)) {
+                budgetInput.disabled = false;
+                budgetInput.focus();
+                passwordFeedback.textContent = "";
+            } else {
+                passwordFeedback.textContent = "Contraseña incorrecta.";
+            }
+            passwordInput.value = "";
+            passwordContainer.classList.add('hidden');
+            unlockContainer.classList.remove('hidden');
+        });
+
+        userSelectionOverlay.addEventListener('click', (e) => {
+            if (e.target.classList.contains('user-select-btn')) {
+                currentUser = e.target.dataset.user;
+                localStorage.setItem('budgetAppUser', currentUser);
+                showApp();
+            }
+        });
+        
+        changeUserBtn.addEventListener('click', () => {
+            localStorage.removeItem('budgetAppUser');
+            currentUser = null;
+            showUserSelection();
+        });
+
+        if (currentUser) {
+            showApp();
+        } else {
+            showUserSelection();
+        }
+        
+        onSnapshot(budgetRef, (doc) => {
+            budget = doc.exists() ? doc.data().value : 0;
+            if (document.activeElement !== budgetInput) {
+                budgetInput.value = budget;
+            }
+            updateSummary();
+        });
+
+        onSnapshot(expensesRef, (snapshot) => {
+            expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateSummary();
+            renderExpenses();
+        });
+    }
+
+    main();
+</script>
+
+</body>
+</html>

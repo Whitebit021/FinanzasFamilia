@@ -87,8 +87,15 @@
     import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- CONFIGURACIÓN ---
-    let firebaseConfig = { /* PEGA TU CONFIGURACIÓN DE FIREBASE AQUÍ */ };
-    if (!firebaseConfig.apiKey && typeof __firebase_config !== 'undefined') { firebaseConfig = JSON.parse(__firebase_config); }
+    const firebaseConfig = {
+        apiKey: "AIzaSyAfkGOJzbGbolR0XhwcAvV_gWWTCrXgAlo",
+        authDomain: "finanzas-familiares-53a54.firebaseapp.com",
+        projectId: "finanzas-familiares-53a54",
+        storageBucket: "finanzas-familiares-53a54.appspot.com",
+        messagingSenderId: "387500536045",
+        appId: "1:387500536045:web:f2cde368ab7cc046ef5ce4",
+        measurementId: "G-6DCWH1ZWBV"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -186,7 +193,6 @@
 
     // --- FUNCIÓN DE INICIALIZACIÓN PRINCIPAL ---
     document.addEventListener('DOMContentLoaded', () => {
-        // Obtenemos los elementos del DOM una vez que está cargado
         const authContainer = document.getElementById('auth-container');
         const familyContainer = document.getElementById('family-container');
         const appContainer = document.getElementById('app-container');

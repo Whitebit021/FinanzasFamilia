@@ -10,71 +10,67 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-        .progress-bar { transition: width 0.5s ease-in-out; }
-        input:disabled { background-color: #334155 !important; cursor: not-allowed; }
-        .modal-hidden { display: none; }
+        .hidden { display: none; }
     </style>
 </head>
-<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4 sm:p-6">
+<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
         <!-- Pantalla de Autenticación -->
         <div id="auth-container" class="space-y-6">
-            <header class="text-center"><h1 class="text-3xl sm:text-4xl font-bold text-cyan-400">Finanzas Familiares</h1><p class="text-slate-400 mt-1">Inicia sesión o regístrate para empezar.</p></header>
+            <header class="text-center"><h1 class="text-3xl font-bold text-cyan-400">Finanzas Familiares</h1><p class="text-slate-400 mt-1">Inicia sesión o regístrate para empezar.</p></header>
             <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
-                <form id="login-form" data-mode="login"><h3 class="text-xl font-semibold mb-4 text-white">Iniciar Sesión</h3><div class="space-y-4"><input type="email" id="login-email" placeholder="Correo electrónico" required class="w-full bg-slate-900 p-3 rounded-lg"><input type="password" id="login-password" placeholder="Contraseña" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 font-bold py-3 rounded-lg">Entrar</button></div></form>
-                <p class="text-center text-sm text-slate-400 mt-4"><a href="#" id="show-register-link" class="font-semibold text-cyan-400">¿No tienes cuenta? Regístrate</a></p>
+                <form id="login-form" data-mode="login"><h3 class="text-xl font-semibold mb-4">Iniciar Sesión</h3><div class="space-y-4"><input type="email" id="login-email" placeholder="Correo electrónico" required class="w-full bg-slate-900 p-3 rounded-lg"><input type="password" id="login-password" placeholder="Contraseña" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="w-full bg-cyan-600 font-bold py-3 rounded-lg">Entrar</button></div></form>
+                <p class="text-center text-sm mt-4"><a href="#" id="show-register-link" class="font-semibold text-cyan-400">¿No tienes cuenta? Regístrate</a></p>
             </div>
             <div id="auth-error" class="text-center text-red-400 text-sm h-4"></div>
         </div>
         
+        <!-- Pantalla de Apodo -->
+        <div id="nickname-container" class="hidden space-y-4 text-center">
+             <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-cyan-400 mb-4">Elige tu Apodo</h2>
+                <form id="nickname-form" class="flex space-x-2"><input type="text" id="nickname-input" placeholder="Ej: El Putas" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="bg-green-600 font-bold py-3 px-4 rounded-lg">Guardar</button></form>
+            </div>
+        </div>
+
         <!-- Pantalla de Selección de Familia -->
         <div id="family-container" class="hidden space-y-4 text-center">
-             <header class="text-center"><p class="text-slate-400">Usuario:</p><p id="family-user-email" class="font-semibold text-cyan-300"></p></header>
+             <header class="text-center"><p class="text-slate-400">Usuario:</p><p id="family-user-nickname" class="font-semibold text-cyan-300"></p></header>
              <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
                 <h2 class="text-2xl font-bold text-cyan-400 mb-4">¡Hola!</h2>
-                <button id="create-family-btn" class="w-full bg-green-600 hover:bg-green-700 font-bold py-3 rounded-lg">Crear Nuevo Espacio Familiar</button>
+                <button id="create-family-btn" class="w-full bg-green-600 font-bold py-3 rounded-lg">Crear Nuevo Espacio Familiar</button>
                 <p class="text-slate-400 my-4">o</p>
-                <form id="join-family-form" class="flex space-x-2"><input type="text" id="join-family-id" placeholder="Ingresa ID de Familia" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="bg-blue-600 hover:bg-blue-700 font-bold py-3 px-4 rounded-lg">Unirse</button></form>
+                <form id="join-family-form" class="flex space-x-2"><input type="text" id="join-family-id" placeholder="Ingresa ID de Familia" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="bg-blue-600 font-bold py-3 px-4 rounded-lg">Unirse</button></form>
             </div>
         </div>
 
         <!-- Contenedor de la Aplicación -->
         <div id="app-container" class="hidden space-y-6">
             <header class="flex justify-between items-center">
-                <div><p class="text-sm text-slate-400">Familia ID:</p><p id="family-id-display" class="font-mono cursor-pointer" title="Click para copiar"></p></div>
-                <button id="logout-btn" class="text-sm bg-red-600 hover:bg-red-700 font-bold py-2 px-4 rounded-lg">Salir</button>
+                <div><p class="text-sm text-slate-400">Sesión de:</p><p id="session-user-nickname" class="font-bold text-lg text-cyan-300"></p></div>
+                <button id="logout-btn" class="text-sm bg-red-600 font-bold py-2 px-4 rounded-lg">Salir</button>
             </header>
             
             <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
-                <h2 class="text-lg font-semibold mb-4 text-slate-300">Resumen del Mes</h2>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-cyan-300">Presupuesto Mensual (COP)</label>
-                    <div class="flex items-center space-x-2 mt-1">
-                        <input type="number" id="monthly-budget" placeholder="Cargando..." class="w-full bg-slate-900 border-2 border-slate-700 rounded-lg p-2 text-white text-xl" disabled>
-                        <div id="unlock-container"><button id="unlock-budget-btn" class="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg" title="Desbloquear"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg></button></div>
-                        <div id="password-container" class="hidden flex items-center space-x-2"><input type="password" id="password-input" placeholder="Clave" class="w-28 bg-slate-900 border-2 border-slate-700 rounded-lg p-2 text-sm"><button id="confirm-password-btn" class="px-3 py-2 text-sm bg-cyan-600 rounded-lg">OK</button></div>
-                    </div>
-                     <p id="password-feedback" class="text-xs text-red-400 h-4 mt-1"></p>
-                </div>
-                <div class="space-y-3"><div class="flex justify-between items-end"><span class="text-slate-400">Gastado:</span><span id="total-spent" class="font-bold text-lg text-amber-400">$0</span></div><div class="flex justify-between items-end"><span id="remaining-label" class="text-slate-400">Restante:</span><span id="remaining-budget" class="font-bold text-2xl text-green-400">$0</span></div></div>
-                <div class="w-full bg-slate-700 rounded-full h-4 mt-4 overflow-hidden"><div id="progress-bar" class="progress-bar h-4 rounded-full"></div></div>
+                <h2 class="text-lg font-semibold mb-4">Resumen del Mes</h2>
+                <div class="mb-4"><label class="block text-sm font-medium text-cyan-300">Presupuesto Mensual (COP)</label><input type="number" id="monthly-budget" class="w-full mt-1 bg-slate-900 p-2 text-xl rounded-lg"></div>
+                <div class="space-y-3"><div><span class="text-slate-400">Gastado:</span><span id="total-spent" class="font-bold text-lg text-amber-400 float-right">$0</span></div><div><span id="remaining-label" class="text-slate-400">Restante:</span><span id="remaining-budget" class="font-bold text-2xl text-green-400 float-right">$0</span></div></div>
+                <div class="w-full bg-slate-700 rounded-full h-4 mt-4"><div id="progress-bar" class="bg-green-500 h-4 rounded-full" style="width: 0%;"></div></div>
             </section>
 
             <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
-                <h2 class="text-lg font-semibold mb-4 text-slate-300">Añadir Nuevo Gasto</h2>
+                <h2 class="text-lg font-semibold mb-4">Añadir Nuevo Gasto</h2>
                 <form id="add-expense-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="sm:col-span-2"><label for="expense-amount" class="block text-sm">Monto (COP)</label><input type="number" id="expense-amount" required class="w-full mt-1 bg-slate-900 p-2 rounded-lg"></div>
-                    <div><label for="expense-store" class="block text-sm">Tienda / Descripción</label><input type="text" id="expense-store" required class="w-full mt-1 bg-slate-900 p-2 rounded-lg"></div>
-                    <div><label for="payment-method" class="block text-sm">Medio de Pago</label><select id="payment-method" class="w-full mt-1 bg-slate-900 p-2 rounded-lg"><option>Tarjeta de Crédito</option><option>Tarjeta de Débito</option><option>Efectivo</option><option>Transfiya</option><option>Nequi/Daviplata</option><option>Otro</option></select></div>
-                    <button type="submit" class="sm:col-span-2 w-full bg-cyan-600 hover:bg-cyan-700 font-bold py-3 rounded-lg">Añadir Gasto</button>
+                    <div class="sm:col-span-2"><label class="block text-sm">Monto (COP)</label><input type="number" id="expense-amount" required class="w-full mt-1 bg-slate-900 p-2 rounded-lg"></div>
+                    <div><label class="block text-sm">Tienda / Descripción</label><input type="text" id="expense-store" required class="w-full mt-1 bg-slate-900 p-2 rounded-lg"></div>
+                    <div><label class="block text-sm">Medio de Pago</label><select id="payment-method" class="w-full mt-1 bg-slate-900 p-2 rounded-lg"><option>Tarjeta de Crédito</option><option>Otro</option></select></div>
+                    <button type="submit" class="sm:col-span-2 w-full bg-cyan-600 font-bold py-3 rounded-lg">Añadir Gasto</button>
                 </form>
             </section>
             
             <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
-                <h2 class="text-lg font-semibold mb-4 text-slate-300">Historial de Gastos</h2>
+                <h2 class="text-lg font-semibold mb-4">Historial de Gastos</h2>
                 <div id="expense-list" class="space-y-3 max-h-96 overflow-y-auto pr-2"></div>
             </section>
         </div>
@@ -84,7 +80,7 @@
     // --- IMPORTACIONES DE FIREBASE ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, serverTimestamp, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- CONFIGURACIÓN ---
     const firebaseConfig = {
@@ -102,21 +98,24 @@
     const auth = getAuth(app);
     
     // --- ESTADO Y REFERENCIAS GLOBALES ---
-    let unsubscribeBudget = () => {};
-    let unsubscribeExpenses = () => {};
-    let familyId = localStorage.getItem('familyId');
+    let unsubscribeListeners = () => {};
     const copFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
-    const BUDGET_PASSWORD_B64 = 'Y2FsaWxh'; // "calila" en Base64
 
-    // --- FUNCIONES ---
-    
-    async function stringToSHA256(str) {
-        const data = new TextEncoder().encode(str);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    // --- DOM Cache ---
+    const authContainer = document.getElementById('auth-container');
+    const nicknameContainer = document.getElementById('nickname-container');
+    const familyContainer = document.getElementById('family-container');
+    const appContainer = document.getElementById('app-container');
+
+    // --- FUNCIONES DE UI ---
+    function showScreen(screenId) {
+        ['auth-container', 'nickname-container', 'family-container', 'app-container'].forEach(id => {
+            document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(screenId).classList.remove('hidden');
     }
 
-    function updateUI(budget = 0, expenses = [], currentUserEmail = null) {
+    function updateAppUI(budget = 0, expenses = [], nickname = '') {
         const budgetInput = document.getElementById('monthly-budget');
         const totalSpentEl = document.getElementById('total-spent');
         const remainingBudgetEl = document.getElementById('remaining-budget');
@@ -124,201 +123,154 @@
         const progressBar = document.getElementById('progress-bar');
         const expenseListEl = document.getElementById('expense-list');
         
-        if (document.activeElement !== budgetInput) {
-            budgetInput.value = budget;
-        }
+        if (document.activeElement !== budgetInput) budgetInput.value = budget;
         
-        const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+        const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
         totalSpentEl.textContent = copFormatter.format(totalExpenses);
         const remaining = budget - totalExpenses;
-        if (remaining < 0) {
-            remainingLabel.textContent = "Sobrepasado:";
-            remainingBudgetEl.textContent = copFormatter.format(Math.abs(remaining));
-            remainingBudgetEl.className = 'font-bold text-2xl text-red-500';
-        } else {
-            remainingLabel.textContent = "Restante:";
-            remainingBudgetEl.textContent = copFormatter.format(remaining);
-            remainingBudgetEl.className = 'font-bold text-2xl text-green-400';
-        }
-        const progressPercentage = budget > 0 ? (totalExpenses / budget) * 100 : 0;
-        progressBar.style.width = `${Math.min(progressPercentage, 100)}%`;
         
-        expenseListEl.innerHTML = '';
-        if (expenses.length === 0) { expenseListEl.innerHTML = '<p class="text-slate-500 text-center">No hay gastos.</p>'; return; }
-        expenses.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-        expenses.forEach(expense => {
-            const expenseEl = document.createElement('div');
+        remainingLabel.textContent = remaining < 0 ? "Sobrepasado:" : "Restante:";
+        remainingBudgetEl.textContent = copFormatter.format(Math.abs(remaining));
+        remainingBudgetEl.className = `font-bold text-2xl ${remaining < 0 ? 'text-red-500' : 'text-green-400'}`;
+        
+        progressBar.style.width = `${budget > 0 ? Math.min((totalExpenses / budget) * 100, 100) : 0}%`;
+        
+        expenseListEl.innerHTML = expenses.length === 0 ? '<p class="text-slate-500 text-center">No hay gastos.</p>' : '';
+        expenses.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).forEach(expense => {
             const date = expense.createdAt ? expense.createdAt.toDate() : new Date();
+            const expenseEl = document.createElement('div');
             expenseEl.className = 'bg-slate-900/50 p-3 rounded-lg flex justify-between items-center';
-            const deleteBtn = currentUserEmail === "fernandoprieto31@gmail.com" ? `<button data-id="${expense.id}" class="delete-btn text-xs text-red-500 hover:text-red-400">Eliminar</button>` : '';
-
-            expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')} - por ${expense.user.split('@')[0]}</p></div><div class="text-right"><p class="font-bold text-amber-400">${copFormatter.format(expense.amount)}</p>${deleteBtn}</div>`;
+            expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')} - por ${expense.nickname}</p></div><p class="font-bold text-amber-400">${copFormatter.format(expense.amount)}</p>`;
             expenseListEl.appendChild(expenseEl);
         });
     }
 
-    function setupApp(currentFamilyId, user) {
-        familyId = currentFamilyId;
+    // --- LÓGICA DE LA APLICACIÓN ---
+    async function setupApp(familyId, user, nickname) {
         localStorage.setItem('familyId', familyId);
         document.getElementById('family-id-display').textContent = familyId;
-        document.getElementById('auth-container').classList.add('hidden');
-        document.getElementById('family-container').classList.add('hidden');
-        document.getElementById('app-container').classList.remove('hidden');
+        document.getElementById('session-user-nickname').textContent = nickname;
+        showScreen('app-container');
 
         const budgetRef = doc(db, `families/${familyId}/budget/doc`);
         const expensesRef = collection(db, `families/${familyId}/expenses`);
 
         let expensesCache = [];
-        unsubscribeBudget = onSnapshot(budgetRef, (doc) => {
-            const budget = doc.exists() ? doc.data().value : 0;
-            updateUI(budget, expensesCache, user.email);
-        }, error => console.error("Error en listener de presupuesto:", error));
-
-        unsubscribeExpenses = onSnapshot(expensesRef, (snapshot) => {
+        const unsubBudget = onSnapshot(budgetRef, doc => {
+            updateAppUI(doc.exists() ? doc.data().value : 0, expensesCache, nickname);
+        });
+        const unsubExpenses = onSnapshot(expensesRef, snapshot => {
             expensesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const budget = parseFloat(document.getElementById('monthly-budget').value) || 0;
-            updateUI(budget, expensesCache, user.email);
-        }, error => console.error("Error en listener de gastos:", error));
+            const budgetVal = parseFloat(document.getElementById('monthly-budget').value) || 0;
+            updateAppUI(budgetVal, expensesCache, nickname);
+        });
+        unsubscribeListeners = () => { unsubBudget(); unsubExpenses(); };
 
         document.getElementById('monthly-budget').onchange = () => setDoc(budgetRef, { value: parseFloat(document.getElementById('monthly-budget').value) || 0 });
-        document.getElementById('add-expense-form').onsubmit = async (e) => {
+        document.getElementById('add-expense-form').onsubmit = async e => {
             e.preventDefault();
             await addDoc(expensesRef, { 
                 amount: parseFloat(document.getElementById('expense-amount').value) || 0, 
-                store: document.getElementById('expense-store').value, 
+                store: document.getElementById('expense-store').value,
                 paymentMethod: document.getElementById('payment-method').value, 
                 createdAt: serverTimestamp(), 
-                user: auth.currentUser.email 
+                user: user.uid,
+                nickname: nickname
             });
             document.getElementById('add-expense-form').reset();
         };
     }
 
-    // --- FUNCIÓN DE INICIALIZACIÓN PRINCIPAL ---
+    // --- MANEJO DE ESTADO DE AUTENTICACIÓN ---
+    onAuthStateChanged(auth, async user => {
+        unsubscribeListeners();
+        if (user) {
+            const userRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userRef);
+
+            if (userDoc.exists() && userDoc.data().nickname) {
+                const userData = userDoc.data();
+                if (userData.familyId) {
+                    setupApp(userData.familyId, user, userData.nickname);
+                } else {
+                    document.getElementById('family-user-nickname').textContent = userData.nickname;
+                    showScreen('family-container');
+                }
+            } else {
+                showScreen('nickname-container');
+            }
+        } else {
+            showScreen('auth-container');
+            localStorage.removeItem('familyId');
+        }
+    });
+
+    // --- INICIALIZACIÓN DE EVENTOS ---
     document.addEventListener('DOMContentLoaded', () => {
-        const authContainer = document.getElementById('auth-container');
-        const familyContainer = document.getElementById('family-container');
-        const appContainer = document.getElementById('app-container');
         const loginForm = document.getElementById('login-form');
         const showRegisterLink = document.getElementById('show-register-link');
+        const nicknameForm = document.getElementById('nickname-form');
         const createFamilyBtn = document.getElementById('create-family-btn');
         const joinFamilyForm = document.getElementById('join-family-form');
         const logoutBtn = document.getElementById('logout-btn');
-        const expenseListEl = document.getElementById('expense-list');
-        const unlockBudgetBtn = document.getElementById('unlock-budget-btn');
-        const passwordContainer = document.getElementById('password-container');
-        const confirmPasswordBtn = document.getElementById('confirm-password-btn');
-        const passwordInput = document.getElementById('password-input');
-        const passwordFeedback = document.getElementById('password-feedback');
-        const budgetInput = document.getElementById('monthly-budget');
-        const unlockContainer = document.getElementById('unlock-container');
 
-
-        onAuthStateChanged(auth, async (user) => {
-            unsubscribeBudget();
-            unsubscribeExpenses();
-            if (user) {
-                document.getElementById('family-user-email').textContent = user.email;
-                familyId = localStorage.getItem('familyId');
-                if (familyId) {
-                    setupApp(familyId, user);
-                } else {
-                    authContainer.classList.add('hidden');
-                    familyContainer.classList.remove('hidden');
-                    appContainer.classList.add('hidden');
-                }
-            } else {
-                authContainer.classList.remove('hidden');
-                familyContainer.classList.add('hidden');
-                appContainer.classList.add('hidden');
-                localStorage.removeItem('familyId');
-            }
-        });
-
-        createFamilyBtn.addEventListener('click', async () => {
-            const newFamilyId = (await stringToSHA256(auth.currentUser.uid + Date.now())).substring(0, 8);
-            setupApp(newFamilyId, auth.currentUser);
-        });
-
-        joinFamilyForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const enteredId = document.getElementById('join-family-id').value.trim();
-            if (enteredId) setupApp(enteredId, auth.currentUser);
-        });
-        
-        logoutBtn.addEventListener('click', () => signOut(auth));
-
-        loginForm.addEventListener('submit', async (e) => {
+        loginForm.addEventListener('submit', async e => {
             e.preventDefault();
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             const isRegistering = loginForm.dataset.mode === 'register';
             const authErrorEl = document.getElementById('auth-error');
             authErrorEl.textContent = '';
-            
             try {
-                if (isRegistering) {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                } else {
-                    await signInWithEmailAndPassword(auth, email, password);
-                }
+                if (isRegistering) await createUserWithEmailAndPassword(auth, email, password);
+                else await signInWithEmailAndPassword(auth, email, password);
             } catch (error) {
                 authErrorEl.textContent = 'Error: ' + error.code.split('/')[1].replace(/-/g, ' ');
             }
         });
-        
-        showRegisterLink.addEventListener('click', (e) => {
+
+        showRegisterLink.addEventListener('click', e => {
             e.preventDefault();
             const h3 = loginForm.querySelector('h3');
             const button = loginForm.querySelector('button');
             const isLoginMode = loginForm.dataset.mode === 'login';
-            
-            if (isLoginMode) {
-                loginForm.dataset.mode = 'register';
-                h3.textContent = 'Registrar Nueva Cuenta';
-                button.textContent = 'Registrar';
-                showRegisterLink.textContent = '¿Ya tienes cuenta? Inicia sesión';
-            } else {
-                loginForm.dataset.mode = 'login';
-                h3.textContent = 'Iniciar Sesión';
-                button.textContent = 'Entrar';
-                showRegisterLink.textContent = '¿No tienes cuenta? Regístrate';
+            loginForm.dataset.mode = isLoginMode ? 'register' : 'login';
+            h3.textContent = isLoginMode ? 'Registrar Nueva Cuenta' : 'Iniciar Sesión';
+            button.textContent = isLoginMode ? 'Registrar' : 'Entrar';
+            showRegisterLink.textContent = isLoginMode ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate';
+        });
+
+        nicknameForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const nickname = document.getElementById('nickname-input').value.trim();
+            if (nickname) {
+                await setDoc(doc(db, 'users', auth.currentUser.uid), { nickname });
             }
         });
 
-        unlockBudgetBtn.addEventListener('click', () => {
-            unlockContainer.classList.add('hidden');
-            passwordContainer.classList.remove('hidden');
-            passwordInput.focus();
+        createFamilyBtn.addEventListener('click', async () => {
+            const newFamilyId = (await stringToSHA256(auth.currentUser.uid + Date.now())).substring(0, 8);
+            const userRef = doc(db, 'users', auth.currentUser.uid);
+            const familyRef = doc(db, 'families', newFamilyId);
+            await setDoc(userRef, { familyId: newFamilyId }, { merge: true });
+            await setDoc(familyRef, { members: [auth.currentUser.uid] });
+            setupApp(newFamilyId, auth.currentUser, (await getDoc(userRef)).data().nickname);
         });
 
-        confirmPasswordBtn.addEventListener('click', () => {
-            if (passwordInput.value === atob(BUDGET_PASSWORD_B64)) {
-                budgetInput.disabled = false;
-                budgetInput.focus();
-                passwordFeedback.textContent = "";
-            } else {
-                passwordFeedback.textContent = "Contraseña incorrecta.";
-                setTimeout(() => passwordFeedback.textContent = "", 2000);
-            }
-            passwordInput.value = "";
-            passwordContainer.classList.add('hidden');
-            unlockContainer.classList.remove('hidden');
-        });
-
-        expenseListEl.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-btn')) {
-                const expenseId = e.target.dataset.id;
-                const password = prompt("Ingresa la clave para eliminar el gasto:");
-                if (password === atob(BUDGET_PASSWORD_B64)) {
-                    await deleteDoc(doc(db, `families/${familyId}/expenses/${expenseId}`));
-                } else if (password !== null) {
-                    alert("Contraseña incorrecta.");
-                }
+        joinFamilyForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const enteredId = document.getElementById('join-family-id').value.trim();
+            if (enteredId) {
+                const userRef = doc(db, 'users', auth.currentUser.uid);
+                const familyRef = doc(db, 'families', enteredId);
+                await updateDoc(familyRef, { members: arrayUnion(auth.currentUser.uid) });
+                await setDoc(userRef, { familyId: enteredId }, { merge: true });
+                setupApp(enteredId, auth.currentUser, (await getDoc(userRef)).data().nickname);
             }
         });
+        
+        logoutBtn.addEventListener('click', () => signOut(auth));
     });
-    
 </script>
 
 </body>

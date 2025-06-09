@@ -13,7 +13,6 @@
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
         .progress-bar { transition: width 0.5s ease-in-out; }
-        input:disabled { background-color: #334155 !important; cursor: not-allowed; }
     </style>
 </head>
 <body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4 sm:p-6">
@@ -84,7 +83,7 @@
     // --- IMPORTACIONES DE FIREBASE ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- CONFIGURACIÓN ---
     const firebaseConfig = {
@@ -244,27 +243,14 @@
             const authErrorEl = document.getElementById('auth-error');
             authErrorEl.textContent = '';
             
-            if (isRegistering) {
-                try {
-                    const configRef = doc(db, "app_config", "user_management");
-                    await runTransaction(db, async (transaction) => {
-                        const configDoc = await transaction.get(configRef);
-                        const userCount = configDoc.exists() ? configDoc.data().user_count : 0;
-                        if (userCount >= 2) {
-                            throw new Error("Límite de 2 usuarios alcanzado para esta aplicación.");
-                        }
-                        transaction.set(configRef, { user_count: userCount + 1 }, { merge: true });
-                    });
+            try {
+                if (isRegistering) {
                     await createUserWithEmailAndPassword(auth, email, password);
-                } catch (error) {
-                    authErrorEl.textContent = error.message.includes('Límite') ? error.message : 'Error al registrar: ' + error.code;
-                }
-            } else {
-                try {
+                } else {
                     await signInWithEmailAndPassword(auth, email, password);
-                } catch (error) {
-                    authErrorEl.textContent = 'Error: ' + error.code.split('/')[1];
                 }
+            } catch (error) {
+                authErrorEl.textContent = 'Error: ' + error.code.split('/')[1];
             }
         });
         
@@ -288,7 +274,6 @@
         });
     }
 
-    // Esperar a que el DOM esté completamente cargado para evitar errores de referencia.
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeAppLogic);
     } else {

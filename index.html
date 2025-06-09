@@ -94,33 +94,7 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     
-    // --- DOM ELEMENTS ---
-    const authContainer = document.getElementById('auth-container');
-    const familyContainer = document.getElementById('family-container');
-    const appContainer = document.getElementById('app-container');
-    const loginForm = document.getElementById('login-form');
-    const loginEmailInput = document.getElementById('login-email');
-    const loginPasswordInput = document.getElementById('login-password');
-    const showRegisterLink = document.getElementById('show-register-link');
-    const authErrorEl = document.getElementById('auth-error');
-    const logoutBtn = document.getElementById('logout-btn');
-    const familyUserEmail = document.getElementById('family-user-email');
-    const createFamilyBtn = document.getElementById('create-family-btn');
-    const joinFamilyForm = document.getElementById('join-family-form');
-    const joinFamilyIdInput = document.getElementById('join-family-id');
-    const familyIdDisplay = document.getElementById('family-id-display');
-    const budgetInput = document.getElementById('monthly-budget');
-    const totalSpentEl = document.getElementById('total-spent');
-    const remainingBudgetEl = document.getElementById('remaining-budget');
-    const remainingLabel = document.getElementById('remaining-label');
-    const progressBar = document.getElementById('progress-bar');
-    const expenseForm = document.getElementById('add-expense-form');
-    const amountInput = document.getElementById('expense-amount');
-    const storeInput = document.getElementById('expense-store');
-    const paymentMethodSelect = document.getElementById('payment-method');
-    const expenseListEl = document.getElementById('expense-list');
-    
-    // --- ESTADO Y REFERENCIAS ---
+    // --- ESTADO Y REFERENCIAS GLOBALES ---
     let unsubscribeBudget = () => {};
     let unsubscribeExpenses = () => {};
     let familyId = localStorage.getItem('familyId');
@@ -135,6 +109,13 @@
     }
 
     function updateUI(budget = 0, expenses = []) {
+        const budgetInput = document.getElementById('monthly-budget');
+        const totalSpentEl = document.getElementById('total-spent');
+        const remainingBudgetEl = document.getElementById('remaining-budget');
+        const remainingLabel = document.getElementById('remaining-label');
+        const progressBar = document.getElementById('progress-bar');
+        const expenseListEl = document.getElementById('expense-list');
+        
         budgetInput.value = budget;
         const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
         totalSpentEl.textContent = copFormatter.format(totalExpenses);
@@ -166,10 +147,10 @@
     function setupApp(currentFamilyId) {
         familyId = currentFamilyId;
         localStorage.setItem('familyId', familyId);
-        familyIdDisplay.textContent = familyId;
-        authContainer.classList.add('hidden');
-        familyContainer.classList.add('hidden');
-        appContainer.classList.remove('hidden');
+        document.getElementById('family-id-display').textContent = familyId;
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('family-container').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
 
         const budgetRef = doc(db, `families/${familyId}/budget/doc`);
         const expensesRef = collection(db, `families/${familyId}/expenses`);
@@ -181,26 +162,42 @@
         });
         unsubscribeExpenses = onSnapshot(expensesRef, (snapshot) => {
             expensesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            const budget = parseFloat(budgetInput.value) || 0;
+            const budget = parseFloat(document.getElementById('monthly-budget').value) || 0;
             updateUI(budget, expensesCache);
         });
 
-        budgetInput.onchange = () => setDoc(budgetRef, { value: parseFloat(budgetInput.value) || 0 });
-        expenseForm.onsubmit = async (e) => {
+        document.getElementById('monthly-budget').onchange = () => setDoc(budgetRef, { value: parseFloat(document.getElementById('monthly-budget').value) || 0 });
+        document.getElementById('add-expense-form').onsubmit = async (e) => {
             e.preventDefault();
-            await addDoc(expensesRef, { amount: parseFloat(amountInput.value) || 0, store: storeInput.value, paymentMethod: paymentMethodSelect.value, createdAt: serverTimestamp(), user: auth.currentUser.email });
-            expenseForm.reset();
+            await addDoc(expensesRef, { 
+                amount: parseFloat(document.getElementById('expense-amount').value) || 0, 
+                store: document.getElementById('expense-store').value, 
+                paymentMethod: document.getElementById('payment-method').value, 
+                createdAt: serverTimestamp(), 
+                user: auth.currentUser.email 
+            });
+            document.getElementById('add-expense-form').reset();
         };
     }
 
-    // --- MANEJO DE AUTH ---
-    function main() {
+    // --- FUNCIÓN DE INICIALIZACIÓN ---
+    function initialize() {
+        // Obtenemos los elementos del DOM una vez que está cargado
+        const authContainer = document.getElementById('auth-container');
+        const familyContainer = document.getElementById('family-container');
+        const appContainer = document.getElementById('app-container');
+        const loginForm = document.getElementById('login-form');
+        const showRegisterLink = document.getElementById('show-register-link');
+        const createFamilyBtn = document.getElementById('create-family-btn');
+        const joinFamilyForm = document.getElementById('join-family-form');
+        const logoutBtn = document.getElementById('logout-btn');
+
         onAuthStateChanged(auth, async (user) => {
             unsubscribeBudget();
             unsubscribeExpenses();
             if (user) {
-                familyUserEmail.textContent = user.email;
-                familyId = localStorage.getItem('familyId'); // Recargar familyId por si acaso
+                document.getElementById('family-user-email').textContent = user.email;
+                familyId = localStorage.getItem('familyId');
                 if (familyId) {
                     setupApp(familyId);
                 } else {
@@ -223,7 +220,7 @@
 
         joinFamilyForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const enteredId = joinFamilyIdInput.value.trim();
+            const enteredId = document.getElementById('join-family-id').value.trim();
             if (enteredId) setupApp(enteredId);
         });
         
@@ -231,9 +228,10 @@
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = loginEmailInput.value;
-            const password = loginPasswordInput.value;
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
             const isRegistering = loginForm.dataset.mode === 'register';
+            const authErrorEl = document.getElementById('auth-error');
             authErrorEl.textContent = '';
             
             if (isRegistering) {
@@ -247,11 +245,9 @@
                         }
                         transaction.set(configRef, { user_count: userCount + 1 }, { merge: true });
                     });
-
                     await createUserWithEmailAndPassword(auth, email, password);
                 } catch (error) {
                     authErrorEl.textContent = error.message.includes('Límite') ? error.message : 'Error al registrar: ' + error.code;
-                    console.error("Error de registro:", error);
                 }
             } else {
                 try {
@@ -264,11 +260,11 @@
         
         showRegisterLink.addEventListener('click', (e) => {
             e.preventDefault();
-            const isLoginMode = loginForm.dataset.mode === 'login';
             const h3 = loginForm.querySelector('h3');
             const button = loginForm.querySelector('button');
-
-            if(isLoginMode) {
+            const isLoginMode = loginForm.dataset.mode === 'login';
+            
+            if (isLoginMode) {
                 loginForm.dataset.mode = 'register';
                 h3.textContent = 'Registrar Nueva Cuenta';
                 button.textContent = 'Registrar';
@@ -282,7 +278,8 @@
         });
     }
 
-    main(); // Ejecutar la función principal para que se asignen los listeners
+    // Asegurarse de que el DOM esté cargado antes de ejecutar el script principal
+    document.addEventListener('DOMContentLoaded', initialize);
     
 </script>
 

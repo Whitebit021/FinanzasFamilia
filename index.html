@@ -11,29 +11,33 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hidden { display: none; }
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-          -webkit-appearance: none; 
-          margin: 0; 
-        }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input:disabled { background-color: #334155 !important; cursor: not-allowed; }
+        .modal-hidden { display: none; }
     </style>
 </head>
 <body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
-        <!-- Pantalla de Selección de Usuario (Overlay) -->
+        <!-- Overlay para Selección de Usuario -->
         <div id="user-selection-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50">
             <div class="bg-slate-800 p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
                 <h2 class="text-2xl font-bold text-cyan-400 mb-4">¿Quién está usando la app?</h2>
-                <p class="text-slate-400 mb-6">Tu selección se recordará en este dispositivo.</p>
                 <div class="space-y-4">
-                    <button data-user="El Putas" class="user-select-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">El Putas</button>
-                    <button data-user="Mi esposita" class="user-select-btn w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Mi esposita</button>
+                    <button data-user="El Putas" class="user-select-btn w-full bg-blue-600 hover:bg-blue-700 font-bold py-3 px-4 rounded-lg">El Putas</button>
+                    <button data-user="Mi esposita" class="user-select-btn w-full bg-pink-600 hover:bg-pink-700 font-bold py-3 px-4 rounded-lg">Mi esposita</button>
                 </div>
             </div>
         </div>
         
+        <!-- Modal para ver Screenshot -->
+        <div id="screenshot-modal" class="modal-hidden fixed inset-0 bg-black/80 flex items-center justify-center z-40 p-4">
+            <div class="bg-slate-800 p-2 rounded-lg relative max-w-full max-h-full">
+                <button id="close-modal-btn" class="absolute -top-3 -right-3 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">&times;</button>
+                <img id="modal-image" src="" alt="Comprobante" class="max-w-full max-h-[80vh] object-contain rounded">
+            </div>
+        </div>
+
         <!-- Contenedor de la Aplicación -->
         <div id="app-container" class="hidden space-y-6">
             <header class="flex justify-between items-center">
@@ -58,11 +62,16 @@
 
             <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
                 <h2 class="text-lg font-semibold mb-4">Añadir Nuevo Gasto</h2>
-                <form id="add-expense-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="sm:col-span-2"><label class="block text-sm">Monto (COP)</label><input type="number" id="expense-amount" required class="w-full mt-1 bg-slate-900 p-2 rounded-lg"></div>
-                    <div><label class="block text-sm">Tienda / Descripción</label><input type="text" id="expense-store" required class="w-full mt-1 bg-slate-900 p-2 rounded-lg"></div>
-                    <div><label class="block text-sm">Medio de Pago</label><select id="payment-method" class="w-full mt-1 bg-slate-900 p-2 rounded-lg"><option>Tarjeta de Crédito</option><option>Tarjeta de Débito</option><option>Efectivo</option><option>Transfiya</option><option>Nequi/Daviplata</option><option>Otro</option></select></div>
-                    <button type="submit" class="sm:col-span-2 w-full bg-cyan-600 font-bold py-3 rounded-lg">Añadir Gasto</button>
+                <form id="add-expense-form" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label class="block text-sm">Monto (COP)</label><input type="number" id="expense-amount" required class="w-full mt-1 bg-slate-900 p-2 rounded-lg"></div>
+                        <div><label class="block text-sm">Tienda / Descripción</label><input type="text" id="expense-store" required class="w-full mt-1 bg-slate-900 p-2 rounded-lg"></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label class="block text-sm">Medio de Pago</label><select id="payment-method" class="w-full mt-1 bg-slate-900 p-2 rounded-lg"><option>Tarjeta de Crédito</option><option>Tarjeta de Débito</option><option>Efectivo</option><option>Transfiya</option><option>Nequi/Daviplata</option><option>Otro</option></select></div>
+                        <div><label class="block text-sm">Comprobante (Opcional)</label><input type="file" id="expense-receipt" accept="image/*" class="w-full mt-1 text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-900/50 file:text-cyan-300 hover:file:bg-cyan-800/50"></div>
+                    </div>
+                    <button type="submit" id="add-expense-btn" class="w-full bg-cyan-600 font-bold py-3 rounded-lg flex justify-center items-center">Añadir Gasto</button>
                 </form>
             </section>
             
@@ -76,7 +85,8 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAfkGOJzbGbolR0XhwcAvV_gWWTCrXgAlo",
@@ -91,9 +101,10 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    const storage = getStorage(app);
     
     let unsubscribeListeners = () => {};
-    const familyId = 'Family-Calila'; // ID Fijo
+    const familyId = 'Family-Calila';
     const copFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
     const BUDGET_PASSWORD_B64 = 'Y2FsaWxh';
 
@@ -125,7 +136,9 @@
             const expenseEl = document.createElement('div');
             expenseEl.className = 'bg-slate-900/50 p-3 rounded-lg flex justify-between items-center';
             const deleteBtn = currentUserNickname === "El Putas" ? `<button data-id="${expense.id}" class="delete-btn text-xs text-red-500 hover:text-red-400">Eliminar</button>` : '';
-            expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')} - por ${expense.nickname}</p></div><div class="text-right"><p class="font-bold text-amber-400">${copFormatter.format(expense.amount)}</p>${deleteBtn}</div>`;
+            const receiptBtn = expense.receiptUrl ? `<button data-url="${expense.receiptUrl}" class="view-receipt-btn p-1 text-cyan-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg></button>` : '';
+
+            expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')} - por ${expense.nickname}</p></div><div class="flex items-center space-x-2"><div class="text-right"><p class="font-bold text-amber-400">${copFormatter.format(expense.amount)}</p>${deleteBtn}</div>${receiptBtn}</div>`;
             expenseListEl.appendChild(expenseEl);
         });
     }
@@ -133,7 +146,8 @@
     async function setupApp(nickname) {
         localStorage.setItem('budgetAppUser', nickname);
         document.getElementById('session-user-nickname').textContent = nickname;
-        showScreen('app-container');
+        document.getElementById('user-selection-overlay').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
 
         const budgetRef = doc(db, `families/${familyId}/budget/doc`);
         const expensesRef = collection(db, `families/${familyId}/expenses`);
@@ -147,30 +161,8 @@
             updateUI(parseFloat(document.getElementById('monthly-budget').value) || 0, expensesCache, nickname);
         });
         unsubscribeListeners = () => { unsubBudget(); unsubExpenses(); };
-
-        document.getElementById('monthly-budget').onchange = () => setDoc(budgetRef, { value: parseFloat(document.getElementById('monthly-budget').value) || 0 });
-        document.getElementById('add-expense-form').onsubmit = async e => {
-            e.preventDefault();
-            await addDoc(expensesRef, { 
-                amount: parseFloat(document.getElementById('expense-amount').value) || 0, 
-                store: document.getElementById('expense-store').value,
-                paymentMethod: document.getElementById('payment-method').value, 
-                createdAt: serverTimestamp(),
-                nickname: nickname
-            });
-            document.getElementById('add-expense-form').reset();
-        };
     }
     
-    function showScreen(screenId) {
-        ['auth-container', 'family-container', 'app-container', 'user-selection-overlay', 'nickname-container'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.classList.add('hidden');
-        });
-        const screenEl = document.getElementById(screenId);
-        if (screenEl) screenEl.classList.remove('hidden');
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
         signInAnonymously(auth).catch(error => {
             console.error("Error de autenticación anónima:", error);
@@ -184,21 +176,21 @@
                 if (currentUserNickname) {
                     setupApp(currentUserNickname);
                 } else {
-                    showScreen('user-selection-overlay');
+                    document.getElementById('user-selection-overlay').classList.remove('hidden');
                 }
             }
         });
 
         document.getElementById('user-selection-overlay').addEventListener('click', e => {
             if (e.target.classList.contains('user-select-btn')) {
-                const nickname = e.target.dataset.user;
-                setupApp(nickname);
+                setupApp(e.target.dataset.user);
             }
         });
 
         document.getElementById('change-user-btn').addEventListener('click', () => {
             localStorage.removeItem('budgetAppUser');
-            showScreen('user-selection-overlay');
+            document.getElementById('app-container').classList.add('hidden');
+            document.getElementById('user-selection-overlay').classList.remove('hidden');
         });
         
         document.getElementById('unlock-budget-btn').addEventListener('click', () => {
@@ -221,10 +213,56 @@
             document.getElementById('password-container').classList.add('hidden');
             document.getElementById('unlock-container').classList.remove('hidden');
         });
+        
+        document.getElementById('monthly-budget').addEventListener('change', () => {
+            const budgetRef = doc(db, `families/${familyId}/budget/doc`);
+            setDoc(budgetRef, { value: parseFloat(document.getElementById('monthly-budget').value) || 0 });
+            document.getElementById('monthly-budget').disabled = true;
+        });
+        
+        document.getElementById('add-expense-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const addExpenseBtn = document.getElementById('add-expense-btn');
+            const receiptFile = document.getElementById('expense-receipt').files[0];
+            
+            addExpenseBtn.disabled = true;
+            addExpenseBtn.innerHTML = '<div class="w-5 h-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>';
+
+            let receiptUrl = null;
+            if (receiptFile) {
+                const filePath = `receipts/${familyId}/${Date.now()}_${receiptFile.name}`;
+                const fileRef = storageRef(storage, filePath);
+                try {
+                    const snapshot = await uploadBytes(fileRef, receiptFile);
+                    receiptUrl = await getDownloadURL(snapshot.ref);
+                } catch (error) {
+                    console.error("Error al subir imagen:", error);
+                    alert("No se pudo subir el comprobante.");
+                }
+            }
+
+            const expenseData = { 
+                amount: parseFloat(document.getElementById('expense-amount').value) || 0, 
+                store: document.getElementById('expense-store').value,
+                paymentMethod: document.getElementById('payment-method').value, 
+                createdAt: serverTimestamp(),
+                nickname: localStorage.getItem('budgetAppUser'),
+                receiptUrl: receiptUrl
+            };
+            
+            await addDoc(collection(db, `families/${familyId}/expenses`), expenseData);
+            
+            addExpenseBtn.disabled = false;
+            addExpenseBtn.textContent = 'Añadir Gasto';
+            document.getElementById('add-expense-form').reset();
+        });
 
         document.getElementById('expense-list').addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-btn')) {
-                const expenseId = e.target.dataset.id;
+            const deleteButton = e.target.closest('.delete-btn');
+            const receiptButton = e.target.closest('.view-receipt-btn');
+
+            if (deleteButton) {
+                const expenseId = deleteButton.dataset.id;
                 const password = prompt("Ingresa la clave 'calila' para eliminar el gasto:");
                 if (password === atob(BUDGET_PASSWORD_B64)) {
                     await deleteDoc(doc(db, `families/${familyId}/expenses/${expenseId}`));
@@ -232,6 +270,14 @@
                     alert("Contraseña incorrecta.");
                 }
             }
+            if (receiptButton) {
+                document.getElementById('modal-image').src = receiptButton.dataset.url;
+                document.getElementById('screenshot-modal').classList.remove('modal-hidden');
+            }
+        });
+
+        document.getElementById('close-modal-btn').addEventListener('click', () => {
+            document.getElementById('screenshot-modal').classList.add('modal-hidden');
         });
     });
 </script>

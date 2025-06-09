@@ -102,16 +102,17 @@
     import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- CONFIGURACIÓN ---
-    const firebaseConfig = {
-      apiKey: "AIzaSyAfkGOJzbGbolR0XhwcAvV_gWWTCrXgAlo",
-      authDomain: "finanzas-familiares-53a54.firebaseapp.com",
-      projectId: "finanzas-familiares-53a54",
-      storageBucket: "finanzas-familiares-53a54.firebasestorage.app",
-      messagingSenderId: "387500536045",
-      appId: "1:387500536045:web:f2cde368ab7cc046ef5ce4",
-      measurementId: "G-6DCWH1ZWBV"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyAfkGOJzbGbolR0XhwcAvV_gWWTCrXgAlo",
+  authDomain: "finanzas-familiares-53a54.firebaseapp.com",
+  projectId: "finanzas-familiares-53a54",
+  storageBucket: "finanzas-familiares-53a54.firebasestorage.app",
+  messagingSenderId: "387500536045",
+  appId: "1:387500536045:web:f2cde368ab7cc046ef5ce4",
+  measurementId: "G-6DCWH1ZWBV"
+};
 
+    
     if (!firebaseConfig.apiKey && typeof __firebase_config !== 'undefined') {
         firebaseConfig = JSON.parse(__firebase_config);
     }

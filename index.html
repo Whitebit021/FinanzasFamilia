@@ -244,7 +244,10 @@
         document.getElementById('nickname-form').addEventListener('submit', async e => {
             e.preventDefault();
             const nickname = document.getElementById('nickname-input').value.trim();
-            if (nickname) await setDoc(doc(db, 'users', auth.currentUser.uid), { nickname });
+            if (nickname) {
+                await setDoc(doc(db, 'users', auth.currentUser.uid), { nickname });
+                // No es necesario llamar a showScreen aquí, onAuthStateChanged lo manejará en la recarga
+            }
         });
 
         document.getElementById('create-family-btn').addEventListener('click', async () => {

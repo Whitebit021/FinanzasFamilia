@@ -200,7 +200,7 @@
                 if (userData.nickname) {
                     const familyId = userData.familyId || localStorage.getItem('familyId');
                     if (familyId) {
-                        setupApp(familyId, user, userData.nickname);
+                        await setupApp(familyId, user, userData.nickname);
                     } else {
                         document.getElementById('family-user-nickname').textContent = userData.nickname;
                         showScreen('family-container');
@@ -244,10 +244,7 @@
         document.getElementById('nickname-form').addEventListener('submit', async e => {
             e.preventDefault();
             const nickname = document.getElementById('nickname-input').value.trim();
-            if (nickname) {
-                await setDoc(doc(db, 'users', auth.currentUser.uid), { nickname });
-                // No es necesario llamar a showScreen aquí, onAuthStateChanged lo manejará en la recarga
-            }
+            if (nickname) await setDoc(doc(db, 'users', auth.currentUser.uid), { nickname });
         });
 
         document.getElementById('create-family-btn').addEventListener('click', async () => {
@@ -256,6 +253,8 @@
             const familyRef = doc(db, 'families', newFamilyId);
             await setDoc(userRef, { familyId: newFamilyId }, { merge: true });
             await setDoc(familyRef, { members: [auth.currentUser.uid] });
+            const nickname = (await getDoc(userRef)).data().nickname;
+            await setupApp(newFamilyId, auth.currentUser, nickname);
         });
 
         document.getElementById('join-family-form').addEventListener('submit', async e => {
@@ -266,6 +265,8 @@
                 const familyRef = doc(db, 'families', enteredId);
                 await updateDoc(familyRef, { members: arrayUnion(auth.currentUser.uid) });
                 await setDoc(userRef, { familyId: enteredId }, { merge: true });
+                const nickname = (await getDoc(userRef)).data().nickname;
+                await setupApp(enteredId, auth.currentUser, nickname);
             }
         });
         

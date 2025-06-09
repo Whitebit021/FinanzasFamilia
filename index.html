@@ -116,7 +116,10 @@
         const progressBar = document.getElementById('progress-bar');
         const expenseListEl = document.getElementById('expense-list');
         
-        budgetInput.value = budget;
+        if (document.activeElement !== budgetInput) {
+            budgetInput.value = budget;
+        }
+        
         const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
         totalSpentEl.textContent = copFormatter.format(totalExpenses);
         const remaining = budget - totalExpenses;
@@ -159,12 +162,13 @@
         unsubscribeBudget = onSnapshot(budgetRef, (doc) => {
             const budget = doc.exists() ? doc.data().value : 0;
             updateUI(budget, expensesCache);
-        });
+        }, error => console.error("Error en listener de presupuesto:", error));
+
         unsubscribeExpenses = onSnapshot(expensesRef, (snapshot) => {
             expensesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const budget = parseFloat(document.getElementById('monthly-budget').value) || 0;
             updateUI(budget, expensesCache);
-        });
+        }, error => console.error("Error en listener de gastos:", error));
 
         document.getElementById('monthly-budget').onchange = () => setDoc(budgetRef, { value: parseFloat(document.getElementById('monthly-budget').value) || 0 });
         document.getElementById('add-expense-form').onsubmit = async (e) => {
@@ -180,8 +184,8 @@
         };
     }
 
-    // --- FUNCIÓN DE INICIALIZACIÓN ---
-    function initialize() {
+    // --- FUNCIÓN DE INICIALIZACIÓN PRINCIPAL ---
+    document.addEventListener('DOMContentLoaded', () => {
         // Obtenemos los elementos del DOM una vez que está cargado
         const authContainer = document.getElementById('auth-container');
         const familyContainer = document.getElementById('family-container');
@@ -276,10 +280,7 @@
                 showRegisterLink.textContent = '¿No tienes cuenta? Regístrate';
             }
         });
-    }
-
-    // Asegurarse de que el DOM esté cargado antes de ejecutar el script principal
-    document.addEventListener('DOMContentLoaded', initialize);
+    });
     
 </script>
 

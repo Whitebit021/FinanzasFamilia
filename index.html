@@ -14,7 +14,6 @@
         input[type=number] { -moz-appearance: textfield; }
         .progress-bar { transition: width 0.5s ease-in-out; }
         input:disabled { background-color: #334155 !important; cursor: not-allowed; }
-        .modal-hidden { display: none; }
     </style>
 </head>
 <body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4 sm:p-6">
@@ -25,7 +24,17 @@
         <!-- Pantalla de Autenticación -->
         <div id="auth-container" class="space-y-6">
             <header class="text-center"><h1 class="text-3xl sm:text-4xl font-bold text-cyan-400">Finanzas Familiares</h1><p class="text-slate-400 mt-1">Inicia sesión o regístrate para empezar.</p></header>
-            <div class="bg-slate-800 p-6 rounded-xl shadow-lg"><form id="login-form"><h3 class="text-xl font-semibold mb-4 text-white">Iniciar Sesión</h3><div class="space-y-4"><input type="email" id="login-email" placeholder="Correo electrónico" required class="w-full bg-slate-900 p-3 rounded-lg"><input type="password" id="login-password" placeholder="Contraseña" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 font-bold py-3 rounded-lg">Entrar</button></div></form><p class="text-center text-sm text-slate-400 mt-4">¿No tienes cuenta? <a href="#" id="show-register" class="font-semibold text-cyan-400">Regístrate</a></p></div>
+            <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
+                <form id="login-form" data-mode="login">
+                    <h3 class="text-xl font-semibold mb-4 text-white">Iniciar Sesión</h3>
+                    <div class="space-y-4">
+                        <input type="email" id="login-email" placeholder="Correo electrónico" required class="w-full bg-slate-900 p-3 rounded-lg border-2 border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <input type="password" id="login-password" placeholder="Contraseña" required class="w-full bg-slate-900 p-3 rounded-lg border-2 border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 font-bold py-3 rounded-lg transition-colors">Entrar</button>
+                    </div>
+                </form>
+                <p class="text-center text-sm text-slate-400 mt-4"><a href="#" id="show-register-link" class="font-semibold text-cyan-400 hover:underline">¿No tienes cuenta? Regístrate</a></p>
+            </div>
             <div id="auth-error" class="text-center text-red-400 text-sm h-4"></div>
         </div>
         
@@ -75,7 +84,7 @@
     // --- IMPORTACIONES DE FIREBASE ---
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- CONFIGURACIÓN ---
     let firebaseConfig = { /* PEGA TU CONFIGURACIÓN DE FIREBASE AQUÍ */ };
@@ -89,11 +98,10 @@
     const authContainer = document.getElementById('auth-container');
     const familyContainer = document.getElementById('family-container');
     const appContainer = document.getElementById('app-container');
-    // ... (resto de elementos del DOM)
     const loginForm = document.getElementById('login-form');
     const loginEmailInput = document.getElementById('login-email');
     const loginPasswordInput = document.getElementById('login-password');
-    const showRegisterLink = document.getElementById('show-register');
+    const showRegisterLink = document.getElementById('show-register-link');
     const authErrorEl = document.getElementById('auth-error');
     const logoutBtn = document.getElementById('logout-btn');
     const familyUserEmail = document.getElementById('family-user-email');
@@ -121,11 +129,9 @@
     // --- FUNCIONES ---
     
     async function stringToSHA256(str) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(str);
+        const data = new TextEncoder().encode(str);
         const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
     function updateUI(budget = 0, expenses = []) {
@@ -152,7 +158,7 @@
             const expenseEl = document.createElement('div');
             const date = expense.createdAt ? expense.createdAt.toDate() : new Date();
             expenseEl.className = 'bg-slate-900/50 p-3 rounded-lg flex justify-between items-center';
-            expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')}</p></div><p class="font-bold">${copFormatter.format(expense.amount)}</p>`;
+            expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')} - por ${expense.user.split('@')[0]}</p></div><p class="font-bold">${copFormatter.format(expense.amount)}</p>`;
             expenseListEl.appendChild(expenseEl);
         });
     }
@@ -168,20 +174,21 @@
         const budgetRef = doc(db, `families/${familyId}/budget/doc`);
         const expensesRef = collection(db, `families/${familyId}/expenses`);
 
+        let expensesCache = [];
         unsubscribeBudget = onSnapshot(budgetRef, (doc) => {
             const budget = doc.exists() ? doc.data().value : 0;
-            updateUI(budget, []); // Update budget first
+            updateUI(budget, expensesCache);
         });
         unsubscribeExpenses = onSnapshot(expensesRef, (snapshot) => {
-            const expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            expensesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const budget = parseFloat(budgetInput.value) || 0;
-            updateUI(budget, expenses);
+            updateUI(budget, expensesCache);
         });
 
         budgetInput.onchange = () => setDoc(budgetRef, { value: parseFloat(budgetInput.value) || 0 });
         expenseForm.onsubmit = async (e) => {
             e.preventDefault();
-            await addDoc(expensesRef, { amount: parseFloat(amountInput.value) || 0, store: storeInput.value, paymentMethod: paymentMethodSelect.value, createdAt: serverTimestamp() });
+            await addDoc(expensesRef, { amount: parseFloat(amountInput.value) || 0, store: storeInput.value, paymentMethod: paymentMethodSelect.value, createdAt: serverTimestamp(), user: auth.currentUser.email });
             expenseForm.reset();
         };
     }
@@ -224,21 +231,52 @@
         e.preventDefault();
         const email = loginEmailInput.value;
         const password = loginPasswordInput.value;
-        const isRegistering = loginForm.querySelector('h3').textContent.includes('Registrar');
-        try {
-            await (isRegistering ? createUserWithEmailAndPassword(auth, email, password) : signInWithEmailAndPassword(auth, email, password));
-            authErrorEl.textContent = '';
-        } catch (error) {
-            authErrorEl.textContent = 'Error: ' + error.code.split('/')[1];
+        const isRegistering = loginForm.dataset.mode === 'register';
+        authErrorEl.textContent = '';
+        
+        if (isRegistering) {
+            try {
+                const configRef = doc(db, "app_config", "user_management");
+                await runTransaction(db, async (transaction) => {
+                    const configDoc = await transaction.get(configRef);
+                    const userCount = configDoc.exists() ? configDoc.data().user_count : 0;
+                    if (userCount >= 2) {
+                        throw new Error("Límite de 2 usuarios alcanzado para esta aplicación.");
+                    }
+                    transaction.set(configRef, { user_count: userCount + 1 }, { merge: true });
+                });
+
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                authErrorEl.textContent = error.message.includes('Límite') ? error.message : 'Error al registrar: ' + error.code;
+                console.error("Error de registro:", error);
+            }
+        } else {
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                authErrorEl.textContent = 'Error: ' + error.code.split('/')[1];
+            }
         }
     };
     
     showRegisterLink.onclick = (e) => {
         e.preventDefault();
+        const isLoginMode = loginForm.dataset.mode === 'login';
         const h3 = loginForm.querySelector('h3');
-        h3.textContent = h3.textContent.includes('Iniciar') ? 'Registrar Cuenta' : 'Iniciar Sesión';
-        loginForm.querySelector('button').textContent = h3.textContent.includes('Registrar') ? 'Registrar' : 'Entrar';
-        e.target.textContent = h3.textContent.includes('Registrar') ? 'Inicia sesión' : 'Regístrate';
+        const button = loginForm.querySelector('button');
+
+        if(isLoginMode) {
+            loginForm.dataset.mode = 'register';
+            h3.textContent = 'Registrar Nueva Cuenta';
+            button.textContent = 'Registrar';
+            showRegisterLink.textContent = '¿Ya tienes cuenta? Inicia sesión';
+        } else {
+            loginForm.dataset.mode = 'login';
+            h3.textContent = 'Iniciar Sesión';
+            button.textContent = 'Entrar';
+            showRegisterLink.textContent = '¿No tienes cuenta? Regístrate';
+        }
     };
     
 </script>

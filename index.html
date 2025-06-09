@@ -28,11 +28,19 @@
             <div id="auth-error" class="text-center text-red-400 text-sm h-4"></div>
         </div>
         
+        <!-- Pantalla de Apodo -->
+        <div id="nickname-container" class="hidden space-y-4 text-center">
+             <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold text-cyan-400 mb-4">Elige tu Apodo</h2>
+                <form id="nickname-form" class="flex space-x-2"><input type="text" id="nickname-input" placeholder="Ej: El Putas" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="bg-green-600 font-bold py-3 px-4 rounded-lg">Guardar</button></form>
+            </div>
+        </div>
+
         <!-- Pantalla de Selección de Familia -->
         <div id="family-container" class="hidden space-y-4 text-center">
-             <header class="text-center"><p class="text-slate-400">Usuario:</p><p id="family-user-email" class="font-semibold text-cyan-300"></p></header>
+             <header class="text-center"><p class="text-slate-400">Usuario:</p><p id="family-user-nickname" class="font-semibold text-cyan-300"></p></header>
              <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
-                <h2 class="text-2xl font-bold text-cyan-400 mb-4">¡Bienvenido!</h2>
+                <h2 class="text-2xl font-bold text-cyan-400 mb-4">¡Hola!</h2>
                 <button id="create-family-btn" class="w-full bg-green-600 font-bold py-3 rounded-lg">Crear Nuevo Espacio Familiar</button>
                 <p class="text-slate-400 my-4">o</p>
                 <form id="join-family-form" class="flex space-x-2"><input type="text" id="join-family-id" placeholder="Ingresa ID de Familia" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="bg-blue-600 font-bold py-3 px-4 rounded-lg">Unirse</button></form>
@@ -42,7 +50,7 @@
         <!-- Contenedor de la Aplicación -->
         <div id="app-container" class="hidden space-y-6">
             <header class="flex justify-between items-center">
-                <div><p class="text-sm text-slate-400">Usuario:</p><p id="session-user-email" class="font-bold text-lg text-cyan-300"></p></div>
+                <div><p class="text-sm text-slate-400">Sesión de:</p><p id="session-user-nickname" class="font-bold text-lg text-cyan-300"></p></div>
                 <button id="logout-btn" class="text-sm bg-red-600 font-bold py-2 px-4 rounded-lg">Salir</button>
             </header>
             
@@ -98,7 +106,6 @@
     const auth = getAuth(app);
     
     let unsubscribeListeners = () => {};
-    let familyId = localStorage.getItem('familyId');
     const copFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
     const BUDGET_PASSWORD_B64 = 'Y2FsaWxh';
 
@@ -108,7 +115,7 @@
         return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    function updateUI(budget = 0, expenses = [], currentUserEmail = '') {
+    function updateUI(budget = 0, expenses = [], currentUserNickname = '') {
         const budgetInput = document.getElementById('monthly-budget');
         const totalSpentEl = document.getElementById('total-spent');
         const remainingBudgetEl = document.getElementById('remaining-budget');
@@ -135,17 +142,16 @@
             const date = expense.createdAt ? expense.createdAt.toDate() : new Date();
             const expenseEl = document.createElement('div');
             expenseEl.className = 'bg-slate-900/50 p-3 rounded-lg flex justify-between items-center';
-            const deleteBtn = currentUserEmail === "fernandoprieto31@gmail.com" ? `<button data-id="${expense.id}" class="delete-btn text-xs text-red-500 hover:text-red-400">Eliminar</button>` : '';
-            expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')} - por ${expense.user.split('@')[0]}</p></div><div class="text-right"><p class="font-bold text-amber-400">${copFormatter.format(expense.amount)}</p>${deleteBtn}</div>`;
+            const deleteBtn = currentUserNickname === "El Putas" ? `<button data-id="${expense.id}" class="delete-btn text-xs text-red-500 hover:text-red-400">Eliminar</button>` : '';
+            expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')} - por ${expense.nickname}</p></div><div class="text-right"><p class="font-bold text-amber-400">${copFormatter.format(expense.amount)}</p>${deleteBtn}</div>`;
             expenseListEl.appendChild(expenseEl);
         });
     }
 
-    async function setupApp(currentFamilyId, user) {
-        familyId = currentFamilyId;
+    async function setupApp(familyId, user, nickname) {
         localStorage.setItem('familyId', familyId);
         document.getElementById('family-id-display').textContent = familyId;
-        document.getElementById('session-user-email').textContent = user.email;
+        document.getElementById('session-user-nickname').textContent = nickname;
         showScreen('app-container');
 
         const budgetRef = doc(db, `families/${familyId}/budget/doc`);
@@ -153,11 +159,11 @@
 
         let expensesCache = [];
         const unsubBudget = onSnapshot(budgetRef, doc => {
-            updateUI(doc.exists() ? doc.data().value : 0, expensesCache, user.email);
+            updateUI(doc.exists() ? doc.data().value : 0, expensesCache, nickname);
         });
         const unsubExpenses = onSnapshot(expensesRef, snapshot => {
             expensesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            updateUI(parseFloat(document.getElementById('monthly-budget').value) || 0, expensesCache, user.email);
+            updateUI(parseFloat(document.getElementById('monthly-budget').value) || 0, expensesCache, nickname);
         });
         unsubscribeListeners = () => { unsubBudget(); unsubExpenses(); };
 
@@ -169,14 +175,15 @@
                 store: document.getElementById('expense-store').value,
                 paymentMethod: document.getElementById('payment-method').value, 
                 createdAt: serverTimestamp(), 
-                user: user.email
+                user: user.uid,
+                nickname: nickname
             });
             document.getElementById('add-expense-form').reset();
         };
     }
-    
+
     function showScreen(screenId) {
-        ['auth-container', 'family-container', 'app-container'].forEach(id => {
+        ['auth-container', 'nickname-container', 'family-container', 'app-container'].forEach(id => {
             document.getElementById(id).classList.add('hidden');
         });
         document.getElementById(screenId).classList.remove('hidden');
@@ -186,12 +193,18 @@
         onAuthStateChanged(auth, async user => {
             unsubscribeListeners();
             if (user) {
-                document.getElementById('family-user-email').textContent = user.email;
-                familyId = localStorage.getItem('familyId');
-                if (familyId) {
-                    await setupApp(familyId, user);
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
+                if (userDoc.exists() && userDoc.data().nickname) {
+                    const userData = userDoc.data();
+                    if (userData.familyId) {
+                        await setupApp(userData.familyId, user, userData.nickname);
+                    } else {
+                        document.getElementById('family-user-nickname').textContent = userData.nickname;
+                        showScreen('family-container');
+                    }
                 } else {
-                    showScreen('family-container');
+                    showScreen('nickname-container');
                 }
             } else {
                 showScreen('auth-container');
@@ -226,18 +239,39 @@
             e.target.textContent = isLoginMode ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate';
         });
 
+        document.getElementById('nickname-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const nickname = document.getElementById('nickname-input').value.trim();
+            if (nickname) {
+                await setDoc(doc(db, 'users', auth.currentUser.uid), { nickname });
+                // onAuthStateChanged se encargará de mostrar la siguiente pantalla
+            }
+        });
+
         document.getElementById('create-family-btn').addEventListener('click', async () => {
             const newFamilyId = (await stringToSHA256(auth.currentUser.uid + Date.now())).substring(0, 8);
-            await setupApp(newFamilyId, auth.currentUser);
+            const userRef = doc(db, 'users', auth.currentUser.uid);
+            const familyRef = doc(db, 'families', newFamilyId);
+            await setDoc(userRef, { familyId: newFamilyId }, { merge: true });
+            await setDoc(familyRef, { members: [auth.currentUser.uid] });
+            // onAuthStateChanged se encargará de mostrar la app
         });
 
         document.getElementById('join-family-form').addEventListener('submit', async e => {
             e.preventDefault();
             const enteredId = document.getElementById('join-family-id').value.trim();
-            if (enteredId) await setupApp(enteredId, auth.currentUser);
+            if (enteredId) {
+                const userRef = doc(db, 'users', auth.currentUser.uid);
+                const familyRef = doc(db, 'families', enteredId);
+                await updateDoc(familyRef, { members: arrayUnion(auth.currentUser.uid) });
+                await setDoc(userRef, { familyId: enteredId }, { merge: true });
+            }
         });
         
-        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            signOut(auth);
+            localStorage.removeItem('familyId');
+        });
         
         document.getElementById('unlock-budget-btn').addEventListener('click', () => {
             document.getElementById('unlock-container').classList.add('hidden');

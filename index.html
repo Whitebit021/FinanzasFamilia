@@ -11,11 +11,7 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hidden { display: none; }
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-          -webkit-appearance: none; 
-          margin: 0; 
-        }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input:disabled { background-color: #334155 !important; cursor: not-allowed; }
     </style>
 </head>
@@ -202,8 +198,9 @@
                 const userData = userDoc.exists() ? userDoc.data() : {};
                 
                 if (userData.nickname) {
-                    if (userData.familyId) {
-                        setupApp(userData.familyId, user, userData.nickname);
+                    const familyId = userData.familyId || localStorage.getItem('familyId');
+                    if (familyId) {
+                        setupApp(familyId, user, userData.nickname);
                     } else {
                         document.getElementById('family-user-nickname').textContent = userData.nickname;
                         showScreen('family-container');

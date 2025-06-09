@@ -244,7 +244,11 @@
             e.preventDefault();
             const nickname = document.getElementById('nickname-input').value.trim();
             if (nickname) {
+                // 1. Guardar el apodo en la base de datos
                 await setDoc(doc(db, 'users', auth.currentUser.uid), { nickname });
+                // 2. **CORRECCIÓN:** Avanzar a la siguiente pantalla manualmente
+                document.getElementById('family-user-nickname').textContent = nickname;
+                showScreen('family-container');
             }
         });
 
@@ -254,7 +258,8 @@
             const familyRef = doc(db, 'families', newFamilyId);
             await setDoc(userRef, { familyId: newFamilyId }, { merge: true });
             await setDoc(familyRef, { members: [auth.currentUser.uid] });
-            setupApp(newFamilyId, auth.currentUser, (await getDoc(userRef)).data().nickname);
+            const nickname = (await getDoc(userRef)).data().nickname;
+            setupApp(newFamilyId, auth.currentUser, nickname);
         });
 
         joinFamilyForm.addEventListener('submit', async e => {
@@ -265,7 +270,8 @@
                 const familyRef = doc(db, 'families', enteredId);
                 await updateDoc(familyRef, { members: arrayUnion(auth.currentUser.uid) });
                 await setDoc(userRef, { familyId: enteredId }, { merge: true });
-                setupApp(enteredId, auth.currentUser, (await getDoc(userRef)).data().nickname);
+                const nickname = (await getDoc(userRef)).data().nickname;
+                setupApp(enteredId, auth.currentUser, nickname);
             }
         });
         

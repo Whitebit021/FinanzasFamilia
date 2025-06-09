@@ -40,7 +40,13 @@
                      <p class="text-sm text-slate-400">Sesión de:</p>
                      <p id="session-user-display" class="font-semibold text-cyan-300 text-lg"></p>
                 </div>
-                <button id="change-user-btn" class="text-sm bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cambiar Usuario</button>
+                <div class="flex items-center space-x-4">
+                    <div id="connection-status" class="flex items-center space-x-2 text-xs text-slate-400">
+                        <div id="status-dot" class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                        <span id="status-text">Conectando...</span>
+                    </div>
+                    <button id="change-user-btn" class="text-sm bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cambiar</button>
+                </div>
             </header>
             
             <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
@@ -63,7 +69,7 @@
                 </div>
                 <div class="space-y-3">
                     <div class="flex justify-between items-end"><span class="text-slate-400">Gastado:</span><span id="total-spent" class="font-bold text-lg text-amber-400">$0</span></div>
-                    <div class="flex justify-between items-end"><span class="text-slate-400">Restante:</span><span id="remaining-budget" class="font-bold text-2xl text-green-400">$0</span></div>
+                    <div class="flex justify-between items-end"><span id="remaining-label" class="text-slate-400">Restante:</span><span id="remaining-budget" class="font-bold text-2xl text-green-400">$0</span></div>
                 </div>
                 <div class="w-full bg-slate-700 rounded-full h-4 mt-4 overflow-hidden"><div id="progress-bar" class="progress-bar h-4 rounded-full" style="width: 0%;"></div></div>
             </section>
@@ -96,24 +102,18 @@
     import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- CONFIGURACIÓN ---
-    
-    // ** IMPORTANTE **
-    // PASO 1: Pega aquí la configuración de tu propio proyecto de Firebase que copiaste en el paso 2 de las instrucciones.
-    
-      const firebaseConfig = {
-  apiKey: "AIzaSyAfkGOJzbGbolR0XhwcAvV_gWWTCrXgAlo",
-  authDomain: "finanzas-familiares-53a54.firebaseapp.com",
-  projectId: "finanzas-familiares-53a54",
-  storageBucket: "finanzas-familiares-53a54.firebasestorage.app",
-  messagingSenderId: "387500536045",
-  appId: "1:387500536045:web:f2cde368ab7cc046ef5ce4",
-  measurementId: "G-6DCWH1ZWBV"
-
+    const firebaseConfig = {
+      apiKey: "AIzaSyAfkGOJzbGbolR0XhwcAvV_gWWTCrXgAlo",
+      authDomain: "finanzas-familiares-53a54.firebaseapp.com",
+      projectId: "finanzas-familiares-53a54",
+      storageBucket: "finanzas-familiares-53a54.firebasestorage.app",
+      messagingSenderId: "387500536045",
+      appId: "1:387500536045:web:f2cde368ab7cc046ef5ce4",
+      measurementId: "G-6DCWH1ZWBV"
     };
 
-    // Este código usa tu configuración si la pegaste, o la del entorno de Canvas si no.
-    if (!firebaseConfig.apiKey) {
-        firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    if (!firebaseConfig.apiKey && typeof __firebase_config !== 'undefined') {
+        firebaseConfig = JSON.parse(__firebase_config);
     }
     
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'Family-Calila';
@@ -123,6 +123,8 @@
     const auth = getAuth(app);
     
     // --- DOM ELEMENTS ---
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
     const userSelectionOverlay = document.getElementById('user-selection-overlay');
     const appContainer = document.getElementById('app-container');
     const sessionUserDisplay = document.getElementById('session-user-display');
@@ -136,6 +138,7 @@
     const passwordFeedback = document.getElementById('password-feedback');
     const totalSpentEl = document.getElementById('total-spent');
     const remainingBudgetEl = document.getElementById('remaining-budget');
+    const remainingLabel = document.getElementById('remaining-label');
     const progressBar = document.getElementById('progress-bar');
     const expenseForm = document.getElementById('add-expense-form');
     const amountInput = document.getElementById('expense-amount');
@@ -155,11 +158,34 @@
 
     // --- LÓGICA DE LA UI ---
     
+    function setConnectionStatus(status, message) {
+        statusText.textContent = message;
+        if (status === 'connected') {
+            statusDot.className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse';
+        } else if (status === 'error') {
+            statusDot.className = 'w-2 h-2 rounded-full bg-red-500';
+        } else {
+            statusDot.className = 'w-2 h-2 rounded-full bg-yellow-500';
+        }
+    }
+    
     function updateSummary() {
         const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
         const remaining = budget - totalExpenses;
+        
         totalSpentEl.textContent = copFormatter.format(totalExpenses);
-        remainingBudgetEl.textContent = copFormatter.format(remaining);
+        
+        if (remaining < 0) {
+            remainingLabel.textContent = "Sobrepasado en:";
+            remainingBudgetEl.textContent = copFormatter.format(Math.abs(remaining));
+            remainingBudgetEl.classList.remove('text-green-400');
+            remainingBudgetEl.classList.add('text-red-500');
+        } else {
+            remainingLabel.textContent = "Restante:";
+            remainingBudgetEl.textContent = copFormatter.format(remaining);
+            remainingBudgetEl.classList.remove('text-red-500');
+            remainingBudgetEl.classList.add('text-green-400');
+        }
         
         const progressPercentage = budget > 0 ? (totalExpenses / budget) * 100 : 0;
         progressBar.style.width = `${Math.min(progressPercentage, 100)}%`;
@@ -281,6 +307,7 @@
     async function main() {
         if (!firebaseConfig.apiKey) {
             document.body.innerHTML = '<div class="text-center p-8"><h1 class="text-2xl text-red-400">Error de Configuración</h1><p class="text-slate-300 mt-2">La configuración de Firebase no se ha encontrado. Si estás desplegando esta app, asegúrate de pegar tu objeto `firebaseConfig` en el archivo `index.html`.</p></div>';
+            setConnectionStatus('error', 'Sin Configuración');
             return;
         }
 
@@ -299,6 +326,7 @@
         } catch (error) {
             console.error("Error de autenticación anónima:", error);
             document.body.innerHTML = '<p class="text-center text-red-400">No se pudo conectar con la base de datos. Revisa que el método de inicio de sesión "Anónimo" esté habilitado en tu proyecto de Firebase.</p>';
+            setConnectionStatus('error', 'Error de Auth');
             return;
         }
 
@@ -348,17 +376,24 @@
         }
         
         onSnapshot(budgetRef, (doc) => {
+            setConnectionStatus('connected', 'Conectado');
             budget = doc.exists() ? doc.data().value : 0;
             if (document.activeElement !== budgetInput) {
                 budgetInput.value = budget;
             }
             updateSummary();
+        }, err => {
+            console.error("Error de snapshot de presupuesto:", err);
+            setConnectionStatus('error', 'Error');
         });
 
         onSnapshot(expensesRef, (snapshot) => {
             expenses = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             updateSummary();
             renderExpenses();
+        }, err => {
+            console.error("Error de snapshot de gastos:", err);
+            setConnectionStatus('error', 'Error');
         });
     }
 

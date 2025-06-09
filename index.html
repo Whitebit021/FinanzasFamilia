@@ -22,40 +22,23 @@
 <body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4">
 
     <div class="w-full max-w-2xl mx-auto">
-        <!-- Pantalla de Autenticación -->
-        <div id="auth-container" class="space-y-6">
-            <header class="text-center"><h1 class="text-3xl font-bold text-cyan-400">Finanzas Familiares</h1><p class="text-slate-400 mt-1">Inicia sesión o regístrate para empezar.</p></header>
-            <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
-                <form id="login-form" data-mode="login"><h3 class="text-xl font-semibold mb-4">Iniciar Sesión</h3><div class="space-y-4"><input type="email" id="login-email" placeholder="Correo electrónico" required class="w-full bg-slate-900 p-3 rounded-lg"><input type="password" id="login-password" placeholder="Contraseña" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="w-full bg-cyan-600 font-bold py-3 rounded-lg">Entrar</button></div></form>
-                <p class="text-center text-sm mt-4"><a href="#" id="show-register-link" class="font-semibold text-cyan-400">¿No tienes cuenta? Regístrate</a></p>
+        <!-- Pantalla de Selección de Usuario (Overlay) -->
+        <div id="user-selection-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-slate-800 p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
+                <h2 class="text-2xl font-bold text-cyan-400 mb-4">¿Quién está usando la app?</h2>
+                <p class="text-slate-400 mb-6">Tu selección se recordará en este dispositivo.</p>
+                <div class="space-y-4">
+                    <button data-user="El Putas" class="user-select-btn w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">El Putas</button>
+                    <button data-user="Mi esposita" class="user-select-btn w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-4 rounded-lg transition-colors text-lg">Mi esposita</button>
+                </div>
             </div>
-            <div id="auth-error" class="text-center text-red-400 text-sm h-4"></div>
         </div>
         
-        <!-- Pantalla de Apodo -->
-        <div id="nickname-container" class="hidden space-y-4 text-center">
-             <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
-                <h2 class="text-2xl font-bold text-cyan-400 mb-4">Elige tu Apodo</h2>
-                <form id="nickname-form" class="flex space-x-2"><input type="text" id="nickname-input" placeholder="Ej: El Putas" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="bg-green-600 font-bold py-3 px-4 rounded-lg">Guardar</button></form>
-            </div>
-        </div>
-
-        <!-- Pantalla de Selección de Familia -->
-        <div id="family-container" class="hidden space-y-4 text-center">
-             <header class="text-center"><p class="text-slate-400">Usuario:</p><p id="family-user-nickname" class="font-semibold text-cyan-300"></p></header>
-             <div class="bg-slate-800 p-6 rounded-xl shadow-lg">
-                <h2 class="text-2xl font-bold text-cyan-400 mb-4">¡Bienvenido!</h2>
-                <button id="create-family-btn" class="w-full bg-green-600 font-bold py-3 rounded-lg">Crear Nuevo Espacio Familiar</button>
-                <p class="text-slate-400 my-4">o</p>
-                <form id="join-family-form" class="flex space-x-2"><input type="text" id="join-family-id" placeholder="Ingresa ID de Familia" required class="w-full bg-slate-900 p-3 rounded-lg"><button type="submit" class="bg-blue-600 font-bold py-3 px-4 rounded-lg">Unirse</button></form>
-            </div>
-        </div>
-
         <!-- Contenedor de la Aplicación -->
         <div id="app-container" class="hidden space-y-6">
             <header class="flex justify-between items-center">
                 <div><p class="text-sm text-slate-400">Sesión de:</p><p id="session-user-nickname" class="font-bold text-lg text-cyan-300"></p></div>
-                <button id="logout-btn" class="text-sm bg-red-600 font-bold py-2 px-4 rounded-lg">Salir</button>
+                <button id="change-user-btn" class="text-sm bg-slate-700 hover:bg-slate-600 font-bold py-2 px-4 rounded-lg">Cambiar</button>
             </header>
             
             <section class="bg-slate-800 p-5 rounded-xl shadow-lg">
@@ -92,8 +75,8 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, collection, onSnapshot, setDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAfkGOJzbGbolR0XhwcAvV_gWWTCrXgAlo",
@@ -110,15 +93,9 @@
     const auth = getAuth(app);
     
     let unsubscribeListeners = () => {};
-    let currentFamilyId = localStorage.getItem('familyId');
+    let currentFamilyId = 'Family-Calila'; // ID Fijo
     const copFormatter = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
     const BUDGET_PASSWORD_B64 = 'Y2FsaWxh';
-
-    async function stringToSHA256(str) {
-        const data = new TextEncoder().encode(str);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
 
     function updateUI(budget = 0, expenses = [], currentUserNickname = null) {
         const budgetInput = document.getElementById('monthly-budget');
@@ -147,21 +124,19 @@
             const date = expense.createdAt ? expense.createdAt.toDate() : new Date();
             const expenseEl = document.createElement('div');
             expenseEl.className = 'bg-slate-900/50 p-3 rounded-lg flex justify-between items-center';
-            const deleteBtn = currentUserNickname === "El Putas" || auth.currentUser.email === 'fernandoprieto31@gmail.com' ? `<button data-id="${expense.id}" class="delete-btn text-xs text-red-500 hover:text-red-400">Eliminar</button>` : '';
+            const deleteBtn = currentUserNickname === "El Putas" ? `<button data-id="${expense.id}" class="delete-btn text-xs text-red-500 hover:text-red-400">Eliminar</button>` : '';
             expenseEl.innerHTML = `<div><p class="font-semibold">${expense.store}</p><p class="text-xs text-slate-400">${date.toLocaleDateString('es-CO')} - por ${expense.nickname}</p></div><div class="text-right"><p class="font-bold text-amber-400">${copFormatter.format(expense.amount)}</p>${deleteBtn}</div>`;
             expenseListEl.appendChild(expenseEl);
         });
     }
 
-    async function setupApp(familyId, user, nickname) {
-        currentFamilyId = familyId;
-        localStorage.setItem('familyId', familyId);
-        document.getElementById('family-id-display').textContent = familyId;
+    async function setupApp(nickname) {
+        localStorage.setItem('budgetAppUser', nickname);
         document.getElementById('session-user-nickname').textContent = nickname;
         showScreen('app-container');
 
-        const budgetRef = doc(db, `families/${familyId}/budget/doc`);
-        const expensesRef = collection(db, `families/${familyId}/expenses`);
+        const budgetRef = doc(db, `sessions/${currentFamilyId}/budget/doc`);
+        const expensesRef = collection(db, `sessions/${currentFamilyId}/expenses`);
 
         let expensesCache = [];
         const unsubBudget = onSnapshot(budgetRef, doc => {
@@ -180,154 +155,79 @@
                 amount: parseFloat(document.getElementById('expense-amount').value) || 0, 
                 store: document.getElementById('expense-store').value,
                 paymentMethod: document.getElementById('payment-method').value, 
-                createdAt: serverTimestamp(), 
-                user: user.uid,
+                createdAt: serverTimestamp(),
                 nickname: nickname
             });
             document.getElementById('add-expense-form').reset();
         };
     }
-
+    
     function showScreen(screenId) {
-        ['auth-container', 'nickname-container', 'family-container', 'app-container'].forEach(id => {
-            document.getElementById(id).classList.add('hidden');
+        ['auth-container', 'family-container', 'app-container', 'user-selection-overlay', 'nickname-container'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
         });
-        document.getElementById(screenId).classList.remove('hidden');
+        const screenEl = document.getElementById(screenId);
+        if (screenEl) screenEl.classList.remove('hidden');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        const authContainer = document.getElementById('auth-container');
-        const nicknameContainer = document.getElementById('nickname-container');
-        const familyContainer = document.getElementById('family-container');
-        const appContainer = document.getElementById('app-container');
-        const loginForm = document.getElementById('login-form');
-        const showRegisterLink = document.getElementById('show-register-link');
-        const nicknameForm = document.getElementById('nickname-form');
-        const createFamilyBtn = document.getElementById('create-family-btn');
-        const joinFamilyForm = document.getElementById('join-family-form');
-        const logoutBtn = document.getElementById('logout-btn');
-        const expenseListEl = document.getElementById('expense-list');
-        const unlockBudgetBtn = document.getElementById('unlock-budget-btn');
-        const passwordContainer = document.getElementById('password-container');
-        const confirmPasswordBtn = document.getElementById('confirm-password-btn');
-        const passwordInput = document.getElementById('password-input');
-        const passwordFeedback = document.getElementById('password-feedback');
-        const budgetInput = document.getElementById('monthly-budget');
-        const unlockContainer = document.getElementById('unlock-container');
+        signInAnonymously(auth).catch(error => {
+            console.error("Error de autenticación anónima:", error);
+            document.body.innerHTML = '<p>Error de conexión</p>';
+        });
 
-        onAuthStateChanged(auth, async user => {
+        onAuthStateChanged(auth, user => {
             unsubscribeListeners();
             if (user) {
-                const userRef = doc(db, 'users', user.uid);
-                const userDoc = await getDoc(userRef);
-                const userData = userDoc.exists() ? userDoc.data() : {};
-                
-                if (userData.nickname) {
-                    const familyId = userData.familyId || localStorage.getItem('familyId');
-                    if (familyId) {
-                        await setupApp(familyId, user, userData.nickname);
-                    } else {
-                        document.getElementById('family-user-nickname').textContent = userData.nickname;
-                        showScreen('family-container');
-                    }
+                const currentUserNickname = localStorage.getItem('budgetAppUser');
+                if (currentUserNickname) {
+                    setupApp(currentUserNickname);
                 } else {
-                    showScreen('nickname-container');
+                    showScreen('user-selection-overlay');
                 }
-            } else {
-                showScreen('auth-container');
-                localStorage.removeItem('familyId');
             }
         });
 
-        loginForm.addEventListener('submit', async e => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const isRegistering = e.target.dataset.mode === 'register';
-            const authErrorEl = document.getElementById('auth-error');
-            authErrorEl.textContent = '';
-            try {
-                if (isRegistering) await createUserWithEmailAndPassword(auth, email, password);
-                else await signInWithEmailAndPassword(auth, email, password);
-            } catch (error) {
-                authErrorEl.textContent = 'Error: ' + error.code.split('/')[1].replace(/-/g, ' ');
+        document.getElementById('user-selection-overlay').addEventListener('click', e => {
+            if (e.target.classList.contains('user-select-btn')) {
+                const nickname = e.target.dataset.user;
+                setupApp(nickname);
             }
         });
 
-        showRegisterLink.addEventListener('click', e => {
-            e.preventDefault();
-            const form = document.getElementById('login-form');
-            const h3 = form.querySelector('h3');
-            const button = form.querySelector('button');
-            const isLoginMode = form.dataset.mode === 'login';
-            form.dataset.mode = isLoginMode ? 'register' : 'login';
-            h3.textContent = isLoginMode ? 'Registrar Nueva Cuenta' : 'Iniciar Sesión';
-            button.textContent = isLoginMode ? 'Registrar' : 'Entrar';
-            e.target.textContent = isLoginMode ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate';
-        });
-
-        nicknameForm.addEventListener('submit', async e => {
-            e.preventDefault();
-            const nickname = document.getElementById('nickname-input').value.trim();
-            if (nickname) {
-                await setDoc(doc(db, 'users', auth.currentUser.uid), { nickname });
-            }
-        });
-
-        createFamilyBtn.addEventListener('click', async () => {
-            const user = auth.currentUser;
-            const userRef = doc(db, 'users', user.uid);
-            const userDoc = await getDoc(userRef);
-            const nickname = userDoc.exists() ? userDoc.data().nickname : "Usuario";
-            const newFamilyId = (await stringToSHA256(user.uid + Date.now())).substring(0, 8);
-            const familyRef = doc(db, 'families', newFamilyId);
-            
-            await setDoc(userRef, { familyId: newFamilyId }, { merge: true });
-            await setDoc(familyRef, { members: [user.uid] });
-        });
-
-        joinFamilyForm.addEventListener('submit', async e => {
-            e.preventDefault();
-            const user = auth.currentUser;
-            const enteredId = document.getElementById('join-family-id').value.trim();
-            if (enteredId) {
-                const userRef = doc(db, 'users', user.uid);
-                const familyRef = doc(db, 'families', enteredId);
-                await updateDoc(familyRef, { members: arrayUnion(user.uid) });
-                await setDoc(userRef, { familyId: enteredId }, { merge: true });
-            }
+        document.getElementById('change-user-btn').addEventListener('click', () => {
+            localStorage.removeItem('budgetAppUser');
+            showScreen('user-selection-overlay');
         });
         
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth);
-            localStorage.removeItem('familyId');
-        });
-        
-        unlockBudgetBtn.addEventListener('click', () => {
-            unlockContainer.classList.add('hidden');
-            passwordContainer.classList.remove('hidden');
-            passwordInput.focus();
+        document.getElementById('unlock-budget-btn').addEventListener('click', () => {
+            document.getElementById('unlock-container').classList.add('hidden');
+            document.getElementById('password-container').classList.remove('hidden');
+            document.getElementById('password-input').focus();
         });
 
-        confirmPasswordBtn.addEventListener('click', () => {
+        document.getElementById('confirm-password-btn').addEventListener('click', () => {
+            const passwordInput = document.getElementById('password-input');
+            const budgetInput = document.getElementById('monthly-budget');
             if (passwordInput.value === atob(BUDGET_PASSWORD_B64)) {
                 budgetInput.disabled = false;
                 budgetInput.focus();
             } else {
-                passwordFeedback.textContent = "Contraseña incorrecta.";
-                setTimeout(() => passwordFeedback.textContent = "", 2000);
+                document.getElementById('password-feedback').textContent = "Contraseña incorrecta.";
+                setTimeout(() => document.getElementById('password-feedback').textContent = "", 2000);
             }
             passwordInput.value = "";
-            passwordContainer.classList.add('hidden');
-            unlockContainer.classList.remove('hidden');
+            document.getElementById('password-container').classList.add('hidden');
+            document.getElementById('unlock-container').classList.remove('hidden');
         });
 
-        expenseListEl.addEventListener('click', async (e) => {
+        document.getElementById('expense-list').addEventListener('click', async (e) => {
             if (e.target.classList.contains('delete-btn')) {
                 const expenseId = e.target.dataset.id;
                 const password = prompt("Ingresa la clave 'calila' para eliminar el gasto:");
                 if (password === atob(BUDGET_PASSWORD_B64)) {
-                    await deleteDoc(doc(db, `families/${currentFamilyId}/expenses/${expenseId}`));
+                    await deleteDoc(doc(db, `sessions/${currentFamilyId}/expenses/${expenseId}`));
                 } else if (password !== null) {
                     alert("Contraseña incorrecta.");
                 }
